@@ -30,7 +30,7 @@ export default function ProductCard({
       addToCart({
         id: product.id,
         name: product.name,
-        price: product.price,
+        price: Number(String(product.price).replace(/[^0-9]/g, "")) || 0,
         image: product.image,
         quantity: 1,
         variant: product.variants?.[0],
@@ -43,7 +43,7 @@ export default function ProductCard({
       toggleWishlist({
         id: product.id,
         name: product.name,
-        price: product.price,
+        price: Number(String(product.price).replace(/[^0-9]/g, "")) || 0,
         image: product.image,
       })
     );
@@ -59,19 +59,19 @@ export default function ProductCard({
         delay: index * 0.1,
         ease: [0.22, 1, 0.36, 1],
       }}
-      className={`group relative bg-white rounded-[14px] border border-[#ECEAE4] overflow-hidden transition-all duration-500 hover:-translate-y-[3px] hover:shadow-[0_15px_40px_rgba(20,20,20,0.08)] shadow-[0_8px_30px_rgba(20,20,20,0.05)] ${className}`}
+      className={`group relative bg-white rounded-[12px] border border-[rgba(0,0,0,0.07)] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.05)] transition-all duration-300 ease-out hover:-translate-y-[2px] hover:shadow-[0_12px_36px_rgba(0,0,0,0.07)] ${className}`}
     >
       {/* Image */}
       <div
-        className={`relative ${imageHeight} overflow-hidden bg-[#F2EFE8]`}
+        className={`relative ${imageHeight} overflow-hidden bg-[#F5F3EE]`}
       >
         <img
           src={product.image}
           alt={product.name}
-          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03]"
+          className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-[1.02]"
         />
         {product.badge && (
-          <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-[10px] font-semibold tracking-wider uppercase px-3 py-1.5 rounded-full text-[#171717]">
+          <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-[9px] font-bold tracking-[0.12em] uppercase px-2.5 py-1 rounded-full text-[#171717] shadow-sm">
             {product.badge}
           </span>
         )}
@@ -85,10 +85,10 @@ export default function ProductCard({
           aria-label={
             isWishlisted ? "Remove from wishlist" : "Add to wishlist"
           }
-          className="absolute top-3 right-3 w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
+          className="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300"
         >
           <Heart
-            size={15}
+            size={14}
             strokeWidth={1.5}
             className={
               isWishlisted
@@ -100,35 +100,28 @@ export default function ProductCard({
       </div>
 
       {/* Content */}
-      <div className="p-5">
-        <h3 className="text-[14px] font-semibold text-[#171717] leading-tight">
+      <div className="p-4 md:p-5">
+        <h3 className="text-[13px] md:text-[14px] font-semibold text-[#171717] leading-tight">
           {product.name}
         </h3>
-        <p className="mt-1.5 text-[13px] text-[#6F6F69] leading-relaxed">
+        <p className="mt-1.5 text-[12px] md:text-[13px] text-[#6F6F69] leading-relaxed">
           {product.shortDescription}
         </p>
-        <div className="mt-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-semibold text-[#171717]">
-              ${product.price}
-            </span>
-            {product.originalPrice && (
-              <span className="text-[12px] text-[#96958D] line-through">
-                ${product.originalPrice}
-              </span>
-            )}
-          </div>
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-[13px] font-semibold text-[#171717]">
+            {product.price}
+          </span>
           <button
             onClick={(e) => {
               e.preventDefault();
               handleAddToCart();
             }}
             aria-label={`Add ${product.name} to cart`}
-            className="group/btn inline-flex items-center gap-1.5 text-[13px] font-medium text-[#171717] hover:text-[#6F6F69] transition-colors duration-300"
+            className="group/btn inline-flex items-center gap-1 text-[12px] font-medium text-[#171717] hover:text-[#6F6F69] transition-colors duration-300"
           >
             Add
             <ArrowRight
-              size={13}
+              size={12}
               strokeWidth={2}
               className="transition-transform duration-300 group-hover/btn:translate-x-0.5"
             />

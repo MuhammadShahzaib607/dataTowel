@@ -2,8 +2,8 @@ export interface Product {
   id: string;
   name: string;
   shortDescription: string;
-  price: number;
-  originalPrice?: number;
+  price: string;
+  originalPrice?: string;
   image: string;
   category: string;
   badge?: string;
@@ -14,64 +14,54 @@ export interface Product {
 
 export const products: Product[] = [
   {
-    id: "cloud-soft-bath",
-    name: "Cloud Soft Bath Towel",
-    shortDescription: "Impossibly soft. Everyday luxury.",
-    price: 48,
-    image: "/images/towel-01.jpg",
+    id: "premium-cotton-bedsheet",
+    name: "Premium Cotton Bedsheet",
+    shortDescription: "Soft, breathable and beautifully crafted for everyday comfort.",
+    price: "From PKR 2,499",
+    image: "/images/bedsheet.png",
+    category: "Bedsheets",
+    badge: "BESTSELLER",
+    gsm: "300",
+    material: "100% Premium Cotton",
+    variants: ["White", "Cream", "Stone"],
+  },
+  {
+    id: "premium-bath-towel",
+    name: "Premium Bath Towel",
+    shortDescription: "Ultra-soft, absorbent cotton designed for everyday luxury.",
+    price: "From PKR 899",
+    image: "/images/bath-towel.png",
     category: "Bath Towels",
-    badge: "Bestseller",
+    badge: "SOFT & ABSORBENT",
     gsm: "600",
     material: "100% Premium Cotton",
     variants: ["White", "Beige", "Sand"],
   },
   {
-    id: "everyday-hand",
-    name: "Everyday Hand Towel",
-    shortDescription: "Soft hands, elevated routines.",
-    price: 28,
-    image: "/images/towel-02.jpg",
+    id: "cleaning-utility-towels",
+    name: "Cleaning & Utility Towels",
+    shortDescription: "Durable, absorbent towels for everyday cleaning and professional use.",
+    price: "From PKR 399",
+    image: "/images/cleaning-towels.png",
+    category: "Utility Towels",
+    badge: "BULK SUPPLY",
+    gsm: "400",
+    material: "100% Premium Cotton",
+    variants: ["White", "Blue", "Green"],
+  },
+  {
+    id: "luxury-hand-towels",
+    name: "Luxury Hand Towels",
+    shortDescription: "Soft, refined and perfectly sized for everyday essentials.",
+    price: "From PKR 599",
+    image: "/images/hand-towels.png",
     category: "Hand Towels",
+    badge: "EVERYDAY ESSENTIAL",
     gsm: "500",
     material: "100% Premium Cotton",
     variants: ["White", "Cream", "Stone"],
   },
-  {
-    id: "spa-collection",
-    name: "Spa Collection",
-    shortDescription: "Hotel-level luxury, at home.",
-    price: 78,
-    originalPrice: 95,
-    image: "/images/towel-03.jpg",
-    category: "Collections",
-    badge: "Limited",
-    gsm: "700",
-    material: "Long-Staple Cotton",
-    variants: ["Ivory", "Charcoal"],
-  },
-  {
-    id: "signature-bath-sheet",
-    name: "Signature Bath Sheet",
-    shortDescription: "Generous size. Maximum comfort.",
-    price: 62,
-    image: "/images/towel-04.jpg",
-    category: "Bath Sheets",
-    gsm: "650",
-    material: "Egyptian Cotton",
-    variants: ["White", "Sand"],
-  },
-  {
-    id: "spa-towel",
-    name: "Spa Towel",
-    shortDescription: "Wrap yourself in serenity.",
-    price: 52,
-    image: "/images/towel-01.jpg",
-    category: "Bath Towels",
-    gsm: "600",
-    material: "100% Premium Cotton",
-    variants: ["White", "Beige"],
-  },
 ];
 
-export const featuredProducts = products.slice(0, 4);
-export const bestsellerProducts = [products[0], products[3], products[1], products[4]];
+export const featuredProducts = products;
+export const bestsellerProducts = products;

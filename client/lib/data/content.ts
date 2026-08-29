@@ -26,12 +26,12 @@ export const siteContent = {
   },
 
   collection: {
-    heading: "Shop the Collection",
-    subheading: "Soft textures. Thoughtful details. Everyday luxury.",
+    heading: "Shop Our Essentials",
+    subheading: "Premium textiles. Everyday comfort. Reliable quality.",
   },
 
   editorial: {
-    image: "/images/editorial-towel.jpg",
+    image: "/images/hero-bathroom-towel.png",
     heading: "Made for slow mornings.",
     paragraph:
       "Soft, absorbent and designed to become part of your everyday rituals.",
@@ -66,21 +66,21 @@ export const siteContent = {
   },
 
   texture: {
-    image: "/images/towel-texture.jpg",
+    image: "/images/feel-the-difference.png",
     heading: "Feel the Difference.",
     paragraph:
       "Our towels are crafted from long-staple Egyptian cotton, woven at an optimal 600 GSM density. The result is a towel that's impossibly soft, deeply absorbent, and becomes even more luxurious with every wash.",
   },
 
   video: {
-    src: "/videos/towel-story.mp4",
+    src: "/videos/collection-video.mp4",
     poster: "/images/video-poster.jpg",
     eyebrow: "THE ART OF EVERYDAY COMFORT",
     heading: "Crafted with Intention",
   },
 
   brandStory: {
-    image: "/images/editorial-towel.jpg",
+    image: "/images/ritual-story.png",
     heading: "Designed Around the Ritual.",
     paragraph:
       "At Linen & Co., we start with the moment you step out of the shower. That quiet, intimate moment deserves something beautiful. Our towels aren't just functional — they're designed to transform everyday routines into moments of comfort and calm.",
@@ -116,12 +116,12 @@ export const siteContent = {
 
   social: {
     images: [
-      "/images/social-01.jpg",
-      "/images/social-02.jpg",
-      "/images/social-03.jpg",
-      "/images/social-04.jpg",
-      "/images/social-05.jpg",
-      "/images/social-06.jpg",
+      "/images/insta-towel-stack.png",
+      "/images/insta-towel-hook.png",
+      "/images/insta-bathroom-shelf.png",
+      "/images/insta-morning-ritual.png",
+      "/images/insta-rolled-towels.png",
+      "/images/insta-bedsheet-detail.png",
     ],
     handle: "@linenandco",
     tagline: "Follow the ritual",

@@ -13,7 +13,7 @@ export default function Introduction() {
   return (
     <section
       ref={ref}
-      className="py-28 md:py-40 px-10 md:px-16"
+      className="py-28 md:pt-40 px-10 md:px-16"
       style={{ background: "#FAFAF7" }}
     >
       <div className="max-w-[1440px] mx-auto">
