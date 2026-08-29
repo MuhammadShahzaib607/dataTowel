@@ -25,7 +25,7 @@ export default function EditorialSection() {
       >
         <img
           src={editorial.image}
-          alt="Towels in a lifestyle setting"
+          alt="DataTowel premium cotton towels in a luxury setting"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ minHeight: "100%", minWidth: "100%" }}
         />
@@ -46,8 +46,18 @@ export default function EditorialSection() {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="max-w-xl"
         >
+          {editorial.eyebrow && (
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={isInView ? { opacity: 1, y: 0 } : {}}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="text-[10px] md:text-[11px] font-semibold tracking-[0.2em] uppercase text-white/60 mb-4"
+            >
+              {editorial.eyebrow}
+            </motion.p>
+          )}
           <h2
-            className="font-medium text-white"
+            className="font-medium text-white whitespace-pre-line"
             style={{
               fontSize: "clamp(36px, 5vw, 56px)",
               lineHeight: "1.02",

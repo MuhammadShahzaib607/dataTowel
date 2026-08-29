@@ -24,8 +24,7 @@ export default function Footer() {
               {siteContent.brand.name}
             </Link>
             <p className="mt-4 text-[14px] text-[#6F6F69] leading-[1.65] max-w-xs">
-              Thoughtfully crafted towels for everyday rituals. Premium cotton,
-              timeless design, exceptional softness.
+              {siteContent.footer.description}
             </p>
             <div className="flex items-center gap-3 mt-6">
               {socialLinks.map((social) => (
@@ -74,20 +73,20 @@ export default function Footer() {
       <div className="border-t border-[#E8E6DF]/50">
         <div className="max-w-[1440px] mx-auto px-10 md:px-16 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-[12px] text-[#96958D]">
-            &copy; 2026 {siteContent.brand.name} All rights reserved.
+            &copy; 2026 {siteContent.brand.name}. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <Link
-              href="#"
+              href="/privacy-policy"
               className="text-[12px] text-[#96958D] hover:text-[#171717] transition-colors duration-300"
             >
-              Privacy
+              Privacy Policy
             </Link>
             <Link
-              href="#"
+              href="/terms-and-conditions"
               className="text-[12px] text-[#96958D] hover:text-[#171717] transition-colors duration-300"
             >
-              Terms
+              Terms & Conditions
             </Link>
           </div>
         </div>

@@ -48,7 +48,7 @@ export default function InstagramGrid() {
             >
               <img
                 src={src}
-                alt={`Linen & Co. lifestyle ${i + 1}`}
+                alt={`DataTowel lifestyle ${i + 1}`}
                 className="absolute inset-0 w-full h-full object-cover hover:scale-[1.03] transition-transform duration-700 ease-out"
               />
             </motion.div>

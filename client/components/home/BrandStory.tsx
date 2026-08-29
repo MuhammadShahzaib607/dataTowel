@@ -29,7 +29,7 @@ export default function BrandStory() {
           >
             <img
               src={brandStory.image}
-              alt="Linen & Co. brand story"
+              alt="DataTowel brand story — premium cotton textiles"
               className="absolute inset-0 w-full h-full object-cover"
             />
           </motion.div>
@@ -59,7 +59,7 @@ export default function BrandStory() {
               {brandStory.paragraph}
             </p>
             <a
-              href="#"
+              href={brandStory.ctaHref || "#"}
               className="group inline-flex items-center gap-2 mt-8 text-[14px] font-medium text-[#171717] hover:text-[#6F6F69] transition-colors duration-300"
             >
               {brandStory.cta}

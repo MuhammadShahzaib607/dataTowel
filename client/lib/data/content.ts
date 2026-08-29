@@ -1,17 +1,17 @@
 export const siteContent = {
   brand: {
-    name: "Linen & Co.",
-    tagline: "Premium Everyday Essentials",
+    name: "DataTowel",
+    tagline: "Premium Bulk Textile Supply",
   },
 
   hero: {
-    eyebrow: "PREMIUM EVERYDAY ESSENTIALS",
-    heading: "Wrapped in Comfort.",
+    eyebrow: "TRUSTED BY HOTELS, RESTAURANTS & RETAILERS ACROSS PAKISTAN",
+    heading: "Quality You Can Feel.\nSupply You Can Trust.",
     subheading:
-      "Thoughtfully crafted towels designed for everyday rituals, elevated through softness, texture and timeless design.",
-    cta: "Shop Collection",
-    secondaryCta: "Explore Our Story",
-    image: "/images/hero-towel.jpg",
+      "Premium cotton towels, bedsheets and linens — supplied in bulk to hotels, restaurants, gyms and retailers who care about quality.",
+    cta: "View Our Products",
+    secondaryCta: "Request a Bulk Quote",
+    image: "/images/hero-towel.png",
     video: "/videos/hero-towel.mp4",
     detail: {
       label: "600 GSM",
@@ -20,31 +20,34 @@ export const siteContent = {
   },
 
   intro: {
-    heading: "Everyday comfort,\nmade exceptional.",
+    heading: "Comfort Your\nCustomers Will Notice.",
     paragraph:
-      "We believe the things you touch every day should feel extraordinary. Each towel is woven from the finest long-staple cotton, engineered for perfect softness, and designed to elevate your daily rituals.",
+      "Whether it's a hotel guest room, a restaurant table, or a gym locker room — the quality of the towel matters more than people realize. DataTowel supplies premium cotton towels, bedsheets and linens, woven for softness and built to last, at prices that make sense for bulk orders.",
   },
 
   collection: {
-    heading: "Shop Our Essentials",
-    subheading: "Premium textiles. Everyday comfort. Reliable quality.",
+    heading: "Our Products",
+    subheading:
+      "Premium cotton. Bulk pricing. Reliable supply — for every business that needs quality linen.",
   },
 
   editorial: {
     image: "/images/hero-bathroom-towel.png",
-    heading: "Made for slow mornings.",
+    eyebrow: "RELIABLE. CONSISTENT. EVERY ORDER.",
+    heading: "Softness That Lasts,\nOrder After Order.",
     paragraph:
-      "Soft, absorbent and designed to become part of your everyday rituals.",
-    cta: "Discover the Collection",
+      "From five-star hotels to neighborhood restaurants, we deliver the same quality every time — because your customers deserve better than the ordinary.",
+    cta: "See Our Products",
   },
 
   features: {
-    heading: "Made Better, Down to the Thread.",
+    heading: "Built Better, So You Can Rely On Us.",
     items: [
       {
         number: "01",
         title: "Premium Cotton",
-        description: "Soft, breathable and made for everyday comfort.",
+        description:
+          "100% cotton, soft and breathable — the quality your customers will actually feel.",
       },
       {
         number: "02",
@@ -55,12 +58,14 @@ export const siteContent = {
       {
         number: "03",
         title: "Thoughtful GSM",
-        description: "Balanced weight and texture for a luxurious feel.",
+        description:
+          "Consistent weight and weave, batch after batch — so every order matches the last.",
       },
       {
         number: "04",
         title: "Made to Last",
-        description: "Quality construction designed for repeated everyday use.",
+        description:
+          "Built for daily commercial washing — trusted by hotels, restaurants and gyms.",
       },
     ],
   },
@@ -69,46 +74,57 @@ export const siteContent = {
     image: "/images/feel-the-difference.png",
     heading: "Feel the Difference.",
     paragraph:
-      "Our towels are crafted from long-staple Egyptian cotton, woven at an optimal 600 GSM density. The result is a towel that's impossibly soft, deeply absorbent, and becomes even more luxurious with every wash.",
+      "Every DataTowel product is woven from long-staple cotton at an optimal 600 GSM density. The result: towels that stay soft, absorbent and durable — even after hundreds of commercial washes.",
   },
 
   video: {
     src: "/videos/collection-video.mp4",
     poster: "/images/video-poster.jpg",
-    eyebrow: "THE ART OF EVERYDAY COMFORT",
-    heading: "Crafted with Intention",
+    eyebrow: "TRUSTED BY BUSINESSES ACROSS PAKISTAN",
+    heading: "Quality That Speaks For Itself.",
+    description:
+      "Premium cotton towels, bedsheets and linens — supplied in bulk to hotels, restaurants, gyms and retail stores who care about what their customers touch every day.",
+    cta: "Explore Collection",
+    secondaryCta: "Get a Bulk Quote",
   },
 
   brandStory: {
     image: "/images/ritual-story.png",
-    heading: "Designed Around the Ritual.",
+    heading: "Built On Trust, One Order at a Time.",
     paragraph:
-      "At Linen & Co., we start with the moment you step out of the shower. That quiet, intimate moment deserves something beautiful. Our towels aren't just functional — they're designed to transform everyday routines into moments of comfort and calm.",
+      "DataTowel started as a small family supplier — and grew by keeping one promise: consistent quality, delivered on time. Today, we supply hotels, restaurants, gyms and retailers across Pakistan with the towels, bedsheets and linens they rely on every single day.",
     cta: "Our Story",
+    ctaHref: "/about",
+  },
+
+  bestsellers: {
+    heading: "What Businesses Order Most",
+    subheading:
+      "The products our hotel, restaurant and retail partners reorder again and again.",
   },
 
   testimonials: {
-    heading: "What Our Customers Say",
+    heading: "What Our Partners Say",
     items: [
       {
         quote:
-          "The softest towels we've ever used. They transform our bathroom into a spa.",
-        name: "Sarah M.",
-        location: "New York",
+          "Best decision we made for our hotel — great quality, fair prices, and they never let us down on delivery.",
+        name: "Owais Malik",
+        location: "Boutique Hotel Owner, Karachi",
         rating: 5,
       },
       {
         quote:
-          "Beautiful texture, excellent absorbency and they still feel incredible after multiple washes.",
-        name: "James L.",
-        location: "London",
+          "Great quality wiping cloths for our kitchen staff. Durable, and always available in bulk when we need a reorder.",
+        name: "Rukhsana Bibi",
+        location: "Restaurant Manager, Hyderabad",
         rating: 5,
       },
       {
         quote:
-          "I've tried many premium towel brands. Linen & Co. is in a league of its own.",
-        name: "Emma K.",
-        location: "Paris",
+          "We use DataTowel's linen across all our guest rooms. Customers keep commenting on how soft the towels are.",
+        name: "Faisal Sheikh",
+        location: "Guesthouse Owner, Karachi",
         rating: 5,
       },
     ],
@@ -123,37 +139,41 @@ export const siteContent = {
       "/images/insta-rolled-towels.png",
       "/images/insta-bedsheet-detail.png",
     ],
-    handle: "@linenandco",
-    tagline: "Follow the ritual",
+    handle: "@DATATOWEL",
+    tagline: "See DataTowel In Use",
   },
 
   newsletter: {
-    heading: "Make comfort part of your everyday.",
+    heading: "Get Bulk Pricing Updates",
     paragraph:
-      "Join our community and receive early access to new collections, exclusive offers, and care tips.",
+      "New arrivals, seasonal offers, and exclusive bulk discounts — straight to your inbox.",
     placeholder: "Your email address",
     cta: "Subscribe",
   },
 
   footer: {
+    description:
+      "Premium cotton towels, bedsheets and linens — supplied in bulk to hotels, restaurants, gyms and retailers across Pakistan.",
     sections: [
       {
         title: "Shop",
         links: [
-          { label: "All Towels", href: "#" },
-          { label: "Bath Towels", href: "#" },
-          { label: "Hand Towels", href: "#" },
-          { label: "Bath Sheets", href: "#" },
-          { label: "Collections", href: "#" },
+          { label: "All Towels", href: "#shop" },
+          { label: "Bath Towels", href: "#shop" },
+          { label: "Hand Towels", href: "#shop" },
+          { label: "Bath Sheets", href: "#shop" },
+          { label: "Cleaning Towels", href: "#shop" },
+          { label: "Collections", href: "#shop" },
+          { label: "Bulk Orders", href: "#shop" },
         ],
       },
       {
         title: "About",
         links: [
-          { label: "Our Story", href: "#" },
-          { label: "Materials", href: "#" },
+          { label: "Our Story", href: "/about" },
+          { label: "Materials", href: "/about" },
           { label: "Journal", href: "#" },
-          { label: "Contact", href: "#" },
+          { label: "Contact", href: "/contact" },
         ],
       },
       {
@@ -161,8 +181,11 @@ export const siteContent = {
         links: [
           { label: "Shipping", href: "#" },
           { label: "Returns", href: "#" },
-          { label: "FAQs", href: "#" },
+          { label: "FAQs", href: "/faqs" },
           { label: "Care Guide", href: "#" },
+          { label: "Bulk Pricing", href: "#shop" },
+          { label: "Privacy Policy", href: "/privacy-policy" },
+          { label: "Terms & Conditions", href: "/terms-and-conditions" },
         ],
       },
     ],
@@ -170,8 +193,9 @@ export const siteContent = {
 };
 
 export const navigationLinks = [
-  { label: "Shop", href: "#shop" },
-  { label: "Collections", href: "#collections" },
-  { label: "About", href: "#about" },
-  { label: "Journal", href: "#journal" },
+  { label: "Home", href: "/" },
+  { label: "Products", href: "#shop" },
+  { label: "About", href: "/about" },
+  { label: "Bulk Orders", href: "#shop" },
+  { label: "Contact", href: "/contact" },
 ];

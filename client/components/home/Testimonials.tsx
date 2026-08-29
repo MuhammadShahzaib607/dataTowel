@@ -45,6 +45,12 @@ export default function Testimonials() {
               />
             ))}
           </div>
+          <p className="mt-5 text-[14px] font-medium text-[#171717]">
+            {testimonials.items[0].name}
+          </p>
+          <p className="text-[12px] text-[#96958D]">
+            {testimonials.items[0].location}
+          </p>
         </motion.div>
 
         {/* Other testimonials */}

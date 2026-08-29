@@ -108,9 +108,16 @@ export default function ProductCard({
           {product.shortDescription}
         </p>
         <div className="mt-3 flex items-center justify-between">
-          <span className="text-[13px] font-semibold text-[#171717]">
-            {product.price}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-[13px] font-semibold text-[#171717]">
+              {product.price}
+            </span>
+            {product.bulkNote && (
+              <span className="text-[10px] text-[#96958D] mt-0.5 italic">
+                {product.bulkNote}
+              </span>
+            )}
+          </div>
           <button
             onClick={(e) => {
               e.preventDefault();

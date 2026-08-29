@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
 import ReduxProvider from "@/components/providers/ReduxProvider";
+import Navbar from "@/components/layout/Navbar";
+import MobileMenu from "@/components/layout/MobileMenu";
+import Footer from "@/components/layout/Footer";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -11,22 +14,22 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Premium Towels & Everyday Comfort | Linen & Co.",
+  title: "DataTowel | Premium Towels, Bedsheets & Bulk Linen Supply in Pakistan",
   description:
-    "Thoughtfully crafted towels designed for everyday rituals. Premium cotton, timeless design, and exceptional softness. Discover the Linen & Co. collection.",
+    "DataTowel supplies premium cotton towels, bedsheets and linens in bulk to hotels, restaurants, gyms, spas, guesthouses, hospitals and retailers across Pakistan.",
   openGraph: {
-    title: "Premium Towels & Everyday Comfort | Linen & Co.",
+    title: "DataTowel | Premium Towels, Bedsheets & Bulk Linen Supply in Pakistan",
     description:
-      "Thoughtfully crafted towels designed for everyday rituals. Premium cotton, timeless design, and exceptional softness.",
+      "Premium cotton towels, bedsheets and linens supplied in bulk to hotels, restaurants, gyms and retailers across Pakistan.",
     type: "website",
     locale: "en_US",
-    siteName: "Linen & Co.",
+    siteName: "DataTowel",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Premium Towels & Everyday Comfort | Linen & Co.",
+    title: "DataTowel | Premium Towels, Bedsheets & Bulk Linen Supply in Pakistan",
     description:
-      "Thoughtfully crafted towels designed for everyday rituals.",
+      "Premium cotton towels, bedsheets and linens supplied in bulk across Pakistan.",
   },
 };
 
@@ -36,7 +39,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${manrope.variable} antialiased`}>
       <body>
-        <ReduxProvider>{children}</ReduxProvider>
+        <ReduxProvider>
+          <Navbar />
+          <MobileMenu />
+          {children}
+          <Footer />
+        </ReduxProvider>
       </body>
     </html>
   );

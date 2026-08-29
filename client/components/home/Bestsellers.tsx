@@ -5,6 +5,9 @@ import { motion, useInView } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard from "./ProductCard";
 import { bestsellerProducts } from "@/lib/data/products";
+import { siteContent } from "@/lib/data/content";
+
+const { bestsellers } = siteContent;
 
 export default function Bestsellers() {
   const ref = useRef(null);
@@ -33,6 +36,7 @@ export default function Bestsellers() {
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6 }}
+            className="max-w-xl"
           >
             <h2
               className="font-medium text-[#171717]"
@@ -42,8 +46,13 @@ export default function Bestsellers() {
                 letterSpacing: "-0.035em",
               }}
             >
-              Bestsellers
+              {bestsellers.heading}
             </h2>
+            {bestsellers.subheading && (
+              <p className="mt-3 text-[16px] text-[#6F6F69] leading-[1.65]">
+                {bestsellers.subheading}
+              </p>
+            )}
           </motion.div>
           <motion.div
             initial={{ opacity: 0 }}

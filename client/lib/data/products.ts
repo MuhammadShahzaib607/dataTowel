@@ -10,13 +10,15 @@ export interface Product {
   gsm?: string;
   material?: string;
   variants?: string[];
+  bulkNote?: string;
 }
 
 export const products: Product[] = [
   {
     id: "premium-cotton-bedsheet",
     name: "Premium Cotton Bedsheet",
-    shortDescription: "Soft, breathable and beautifully crafted for everyday comfort.",
+    shortDescription:
+      "Soft, breathable and durable — ideal for hotel rooms, guesthouses and rental properties.",
     price: "From PKR 2,499",
     image: "/images/bedsheet.png",
     category: "Bedsheets",
@@ -24,11 +26,13 @@ export const products: Product[] = [
     gsm: "300",
     material: "100% Premium Cotton",
     variants: ["White", "Cream", "Stone"],
+    bulkNote: "Bulk pricing available",
   },
   {
     id: "premium-bath-towel",
     name: "Premium Bath Towel",
-    shortDescription: "Ultra-soft, absorbent cotton designed for everyday luxury.",
+    shortDescription:
+      "Thick, absorbent cotton towels trusted by hotels and spas for daily guest use.",
     price: "From PKR 899",
     image: "/images/bath-towel.png",
     category: "Bath Towels",
@@ -40,7 +44,8 @@ export const products: Product[] = [
   {
     id: "cleaning-utility-towels",
     name: "Cleaning & Utility Towels",
-    shortDescription: "Durable, absorbent towels for everyday cleaning and professional use.",
+    shortDescription:
+      "Heavy-duty wiping cloths for restaurant kitchens, cleaning crews and housekeeping staff.",
     price: "From PKR 399",
     image: "/images/cleaning-towels.png",
     category: "Utility Towels",
@@ -52,7 +57,8 @@ export const products: Product[] = [
   {
     id: "luxury-hand-towels",
     name: "Luxury Hand Towels",
-    shortDescription: "Soft, refined and perfectly sized for everyday essentials.",
+    shortDescription:
+      "Compact, soft hand towels for washrooms, gyms and guest bathrooms.",
     price: "From PKR 599",
     image: "/images/hand-towels.png",
     category: "Hand Towels",
@@ -64,4 +70,9 @@ export const products: Product[] = [
 ];
 
 export const featuredProducts = products;
-export const bestsellerProducts = products;
+export const bestsellerProducts = [
+  products[1],
+  products[2],
+  products[0],
+  products[3],
+];
