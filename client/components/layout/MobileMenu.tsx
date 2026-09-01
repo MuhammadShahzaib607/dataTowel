@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, LogOut, User } from "lucide-react";
+import { X, LogOut, User, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { closeMobileMenu, openAuthModal } from "@/lib/store/uiSlice";
@@ -17,6 +17,10 @@ export default function MobileMenu() {
     dispatch(logout());
     dispatch(closeMobileMenu());
   };
+
+  // Dashboard link based on role
+  const dashboardLink = user?.isAdmin ? "/admin/dashboard" : "/dashboard";
+  const dashboardLabel = user?.isAdmin ? "Admin Dashboard" : "Dashboard";
 
   return (
     <AnimatePresence>
@@ -110,6 +114,14 @@ export default function MobileMenu() {
                         >
                           <User size={16} strokeWidth={1.5} />
                           Profile
+                        </Link>
+                        <Link
+                          href={dashboardLink}
+                          onClick={() => dispatch(closeMobileMenu())}
+                          className="flex items-center gap-2 text-[13px] text-[#6F6F69] hover:text-[#171717] transition-colors cursor-pointer"
+                        >
+                          <LayoutDashboard size={16} strokeWidth={1.5} />
+                          {dashboardLabel}
                         </Link>
                         <button
                           onClick={handleLogout}

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Search, User, ShoppingBag, Menu, LogOut } from "lucide-react";
+import { Search, User, ShoppingBag, Menu, LogOut, LayoutDashboard, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { toggleMobileMenu } from "@/lib/store/uiSlice";
@@ -17,7 +17,7 @@ export default function Navbar() {
   const dispatch = useAppDispatch();
   const pathname = usePathname();
   const cartCount = useAppSelector((state) => state.cart.totalQuantity);
-  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+  const { isAuthenticated, user, isInitialized } = useAppSelector((state) => state.auth);
   const profileDropdownOpen = useAppSelector((state) => state.ui.profileDropdownOpen);
   const [scrolled, setScrolled] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -56,6 +56,10 @@ export default function Navbar() {
   const textColor = isTransparent ? "#ffffff" : "#171717";
   const navTextColor = isTransparent ? "rgba(255,255,255,0.8)" : "#6F6F69";
   const navHoverColor = isTransparent ? "#ffffff" : "#171717";
+
+  // Dashboard link based on role
+  const dashboardLink = user?.isAdmin ? "/admin/dashboard" : "/dashboard";
+  const dashboardLabel = user?.isAdmin ? "Admin Dashboard" : "Dashboard";
 
   return (
     <motion.header
@@ -118,8 +122,16 @@ export default function Navbar() {
             <Search size={20} strokeWidth={1.5} />
           </button>
 
-          {/* Auth buttons / Profile */}
-          {isAuthenticated ? (
+          {/* Auth buttons / Profile — show spinner while initializing */}
+          {!isInitialized ? (
+            <div className="flex items-center gap-2">
+              <Loader2
+                size={18}
+                className="animate-spin"
+                style={{ color: navTextColor }}
+              />
+            </div>
+          ) : isAuthenticated ? (
             <>
               <button
                 aria-label="Cart"
@@ -184,12 +196,12 @@ export default function Navbar() {
                           Profile
                         </Link>
                         <Link
-                          href="/dashboard"
+                          href={dashboardLink}
                           onClick={() => dispatch(closeProfileDropdown())}
                           className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#6F6F69] hover:bg-[#FAFAF7] hover:text-[#171717] transition-colors cursor-pointer"
                         >
-                          <ShoppingBag size={16} strokeWidth={1.5} />
-                          Dashboard
+                          <LayoutDashboard size={16} strokeWidth={1.5} />
+                          {dashboardLabel}
                         </Link>
                         <button
                           onClick={handleLogout}

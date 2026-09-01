@@ -1,23 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Camera, Loader2, Save, User as UserIcon } from "lucide-react";
+import { Camera, Loader2, Save } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   updateProfile,
   uploadProfileImage,
-  updateUserFields,
 } from "@/lib/store/authSlice";
-import { openAuthModal } from "@/lib/store/uiSlice";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
-export default function ProfilePage() {
+function ProfileContent() {
   const dispatch = useAppDispatch();
-  const router = useRouter();
-  const { user, isAuthenticated, isLoading } = useAppSelector(
-    (state) => state.auth
-  );
+  const { user } = useAppSelector((state) => state.auth);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -29,13 +24,6 @@ export default function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated) {
-      dispatch(openAuthModal("login"));
-    }
-  }, [isAuthenticated, dispatch]);
 
   // Populate form from user data
   useEffect(() => {
@@ -57,13 +45,7 @@ export default function ProfilePage() {
     };
   }, [previewUrl]);
 
-  if (!isAuthenticated || !user) {
-    return (
-      <main className="min-h-screen pt-[80px] flex items-center justify-center">
-        <Loader2 size={24} className="animate-spin text-[#96958D]" />
-      </main>
-    );
-  }
+  if (!user) return null;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -95,7 +77,7 @@ export default function ProfilePage() {
     setIsUploading(true);
     setMessage(null);
     try {
-      const result = await dispatch(uploadProfileImage({ file })).unwrap();
+      await dispatch(uploadProfileImage({ file })).unwrap();
       // Update local preview to the Cloudinary URL
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(null);
@@ -133,7 +115,7 @@ export default function ProfilePage() {
   const initials = (user.firstName?.[0] || user.username?.[0] || "U").toUpperCase();
 
   return (
-    <main className="min-h-screen pt-[80px] pb-20">
+    <main className="min-h-screen pb-20">
       <div className="max-w-[640px] mx-auto px-6 md:px-10">
         {/* Header */}
         <motion.div
@@ -342,5 +324,13 @@ export default function ProfilePage() {
         </motion.form>
       </div>
     </main>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <ProtectedRoute>
+      <ProfileContent />
+    </ProtectedRoute>
   );
 }

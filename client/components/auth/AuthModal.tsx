@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Loader2, Mail, ArrowLeft } from "lucide-react";
+import { X, Loader2, ArrowLeft } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   loginUser,
@@ -21,8 +22,9 @@ import {
 } from "@/lib/store/uiSlice";
 
 export default function AuthModal() {
+  const router = useRouter();
   const dispatch = useAppDispatch();
-  const { authModalOpen, authModalMode } = useAppSelector((state) => state.ui);
+  const { authModalOpen, authModalMode, isForcedModal } = useAppSelector((state) => state.ui);
   const { isLoading, error, pendingVerificationEmail } = useAppSelector(
     (state) => state.auth
   );
@@ -54,16 +56,16 @@ export default function AuthModal() {
     };
   }, [authModalOpen]);
 
-  // ESC key
+  // ESC key — only works when NOT forced
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && authModalOpen) {
+      if (e.key === "Escape" && authModalOpen && !isForcedModal) {
         handleClose();
       }
     };
     window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
-  }, [authModalOpen]);
+  }, [authModalOpen, isForcedModal]);
 
   // Clear errors when switching modes
   useEffect(() => {
@@ -79,6 +81,9 @@ export default function AuthModal() {
   }, [resendCooldown]);
 
   const handleClose = useCallback(() => {
+    // Never close if forced modal
+    if (isForcedModal) return;
+
     dispatch(closeAuthModal());
     setUsername("");
     setEmail("");
@@ -89,7 +94,36 @@ export default function AuthModal() {
     setIsGoogleLoading(false);
     dispatch(clearAuthError());
     dispatch(setPendingVerificationEmail(null));
-  }, [dispatch]);
+  }, [dispatch, isForcedModal]);
+
+  const handleBrowseAsGuest = useCallback(() => {
+    dispatch(closeAuthModal());
+    setUsername("");
+    setEmail("");
+    setPassword("");
+    setOtp("");
+    setValidationError("");
+    setResendCooldown(0);
+    setIsGoogleLoading(false);
+    dispatch(clearAuthError());
+    dispatch(setPendingVerificationEmail(null));
+    router.push("/");
+  }, [dispatch, router]);
+
+  const handleBackdropClick = useCallback(() => {
+    // Never close on backdrop if forced
+    if (isForcedModal) return;
+    handleClose();
+  }, [isForcedModal, handleClose]);
+
+  const handleModalClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget && !isForcedModal) {
+        handleClose();
+      }
+    },
+    [isForcedModal, handleClose]
+  );
 
   const switchMode = () => {
     dispatch(setAuthModalMode(isLogin ? "signup" : "login"));
@@ -201,7 +235,6 @@ export default function AuthModal() {
         handleClose();
       }
     } catch (err: unknown) {
-      // Handle Firebase popup closed by user
       if (err && typeof err === "object" && "code" in err) {
         const firebaseError = err as { code: string };
         if (firebaseError.code === "auth/popup-closed-by-user") {
@@ -243,7 +276,7 @@ export default function AuthModal() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
-            onClick={handleClose}
+            onClick={handleBackdropClick}
           />
 
           {/* Modal */}
@@ -253,20 +286,22 @@ export default function AuthModal() {
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-            onClick={(e) => e.target === e.currentTarget && handleClose()}
+            onClick={handleModalClick}
           >
             <div
               className="relative w-full max-w-[420px] bg-white rounded-2xl shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Close button */}
-              <button
-                onClick={handleClose}
-                className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-[#6F6F69] hover:text-[#171717] transition-colors z-10 cursor-pointer"
-                aria-label="Close"
-              >
-                <X size={20} strokeWidth={1.5} />
-              </button>
+              {/* Close button — hidden when forced */}
+              {!isForcedModal && (
+                <button
+                  onClick={handleClose}
+                  className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center text-[#6F6F69] hover:text-[#171717] transition-colors z-10 cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X size={20} strokeWidth={1.5} />
+                </button>
+              )}
 
               {/* Header */}
               <div className="px-8 pt-8 pb-6">
@@ -481,18 +516,33 @@ export default function AuthModal() {
                     </p>
                   </div>
                 ) : (
-                  <p className="mt-5 text-center text-[13px] text-[#6F6F69]">
-                    {isLogin
-                      ? "Don't have an account? "
-                      : "Already have an account? "}
-                    <button
-                      type="button"
-                      onClick={switchMode}
-                      className="text-[#171717] font-medium hover:underline underline-offset-2 cursor-pointer"
-                    >
-                      {isLogin ? "Join" : "Sign In"}
-                    </button>
-                  </p>
+                  <>
+                    <p className="mt-5 text-center text-[13px] text-[#6F6F69]">
+                      {isLogin
+                        ? "Don't have an account? "
+                        : "Already have an account? "}
+                      <button
+                        type="button"
+                        onClick={switchMode}
+                        className="text-[#171717] font-medium hover:underline underline-offset-2 cursor-pointer"
+                      >
+                        {isLogin ? "Join" : "Sign In"}
+                      </button>
+                    </p>
+
+                    {/* Browse as Guest — only when forced for private route */}
+                    {isForcedModal && (
+                      <div className="mt-3 text-center">
+                        <button
+                          type="button"
+                          onClick={handleBrowseAsGuest}
+                          className="text-[13px] text-[#96958D] hover:text-[#6F6F69] transition-colors cursor-pointer underline underline-offset-2"
+                        >
+                          Browse as a Guest
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </form>
             </div>

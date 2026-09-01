@@ -8,6 +8,8 @@ interface UiState {
   scrolled: boolean;
   authModalOpen: boolean;
   authModalMode: AuthModalMode;
+  isForcedModal: boolean;
+  isPrivateRoute: boolean;
   profileDropdownOpen: boolean;
 }
 
@@ -17,6 +19,8 @@ const initialState: UiState = {
   scrolled: false,
   authModalOpen: false,
   authModalMode: "login",
+  isForcedModal: false,
+  isPrivateRoute: false,
   profileDropdownOpen: false,
 };
 
@@ -42,12 +46,22 @@ const uiSlice = createSlice({
     openAuthModal(state, action: PayloadAction<AuthModalMode>) {
       state.authModalOpen = true;
       state.authModalMode = action.payload;
+      state.isForcedModal = false;
+    },
+    openForcedAuthModal(state, action: PayloadAction<AuthModalMode>) {
+      state.authModalOpen = true;
+      state.authModalMode = action.payload;
+      state.isForcedModal = true;
     },
     closeAuthModal(state) {
       state.authModalOpen = false;
+      state.isForcedModal = false;
     },
     setAuthModalMode(state, action: PayloadAction<AuthModalMode>) {
       state.authModalMode = action.payload;
+    },
+    setIsPrivateRoute(state, action: PayloadAction<boolean>) {
+      state.isPrivateRoute = action.payload;
     },
     toggleProfileDropdown(state) {
       state.profileDropdownOpen = !state.profileDropdownOpen;
@@ -65,8 +79,10 @@ export const {
   closeSearch,
   setScrolled,
   openAuthModal,
+  openForcedAuthModal,
   closeAuthModal,
   setAuthModalMode,
+  setIsPrivateRoute,
   toggleProfileDropdown,
   closeProfileDropdown,
 } = uiSlice.actions;

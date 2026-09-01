@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* Manrope — self-hosted (variable font, weights 300–800) */
+@font-face {
+  font-family: "Manrope";
+  src: url("/fonts/manrope/Manrope-Latin.woff2") format("woff2");
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
   --color-background: #FAFAF7;
   --color-foreground: #171717;
@@ -12,7 +21,7 @@
   --color-accent: #D8CBB8;
   --color-white: #FFFFFF;
 
-  --font-sans: var(--font-manrope), system-ui, -apple-system, sans-serif;
+  --font-sans: "Manrope", system-ui, -apple-system, sans-serif;
 }
 
 * {

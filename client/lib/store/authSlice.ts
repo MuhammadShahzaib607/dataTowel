@@ -20,6 +20,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean;
   error: string | null;
   pendingVerificationEmail: string | null;
 }
@@ -29,6 +30,7 @@ const initialState: AuthState = {
   token: typeof window !== "undefined" ? localStorage.getItem("datatowel_token") : null,
   isAuthenticated: false,
   isLoading: false,
+  isInitialized: false,
   error: null,
   pendingVerificationEmail: null,
 };
@@ -239,6 +241,7 @@ const authSlice = createSlice({
       state.user = null;
       state.token = null;
       state.isAuthenticated = false;
+      state.isInitialized = true;
       state.error = null;
       state.pendingVerificationEmail = null;
       localStorage.removeItem("datatowel_token");
@@ -253,6 +256,9 @@ const authSlice = createSlice({
       if (state.user) {
         Object.assign(state.user, action.payload);
       }
+    },
+    setInitialized(state) {
+      state.isInitialized = true;
     },
   },
   extraReducers: (builder) => {
@@ -280,6 +286,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isInitialized = true;
         state.user = action.payload.user;
         state.token = action.payload.token || null;
         state.isAuthenticated = true;
@@ -311,6 +318,7 @@ const authSlice = createSlice({
       })
       .addCase(verifyEmail.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isInitialized = true;
         state.user = action.payload.user;
         state.token = action.payload.token || null;
         state.isAuthenticated = true;
@@ -341,6 +349,7 @@ const authSlice = createSlice({
       })
       .addCase(googleLoginUser.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isInitialized = true;
         state.user = action.payload.user;
         state.token = action.payload.token || null;
         state.isAuthenticated = true;
@@ -357,11 +366,13 @@ const authSlice = createSlice({
       })
       .addCase(restoreUser.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isInitialized = true;
         state.user = action.payload.user;
         state.isAuthenticated = true;
       })
       .addCase(restoreUser.rejected, (state) => {
         state.isLoading = false;
+        state.isInitialized = true;
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
@@ -399,5 +410,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, clearAuthError, setPendingVerificationEmail, updateUserFields } = authSlice.actions;
+export const { logout, clearAuthError, setPendingVerificationEmail, updateUserFields, setInitialized } = authSlice.actions;
 export default authSlice.reducer;
