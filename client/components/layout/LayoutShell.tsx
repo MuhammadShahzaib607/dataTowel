@@ -7,14 +7,17 @@ import MobileMenu from "./MobileMenu";
 import Footer from "./Footer";
 import AuthModal from "@/components/auth/AuthModal";
 import AuthInitializer from "@/components/auth/AuthInitializer";
-import { useAppDispatch } from "@/lib/hooks";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setIsPrivateRoute } from "@/lib/store/uiSlice";
 
-// Add private route prefixes here as the app grows
-const PRIVATE_ROUTE_PREFIXES = ["/admin", "/dashboard", "/profile"];
+// Routes that have their own layout (no public navbar/footer at all)
+const ADMIN_PREFIXES = ["/admin"];
 
-function isPrivateRoute(pathname: string): boolean {
-  return PRIVATE_ROUTE_PREFIXES.some(
+// User private routes — show navbar/footer only when authenticated
+const USER_PRIVATE_PREFIXES = ["/profile", "/dashboard"];
+
+function matchesPrefix(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some(
     (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
   );
 }
@@ -26,21 +29,35 @@ interface LayoutShellProps {
 export default function LayoutShell({ children }: LayoutShellProps) {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
-  const isPrivate = isPrivateRoute(pathname);
+  const { isInitialized, isAuthenticated } = useAppSelector((state) => state.auth);
+
+  const isAdminRoute = matchesPrefix(pathname, ADMIN_PREFIXES);
+  const isUserPrivate = matchesPrefix(pathname, USER_PRIVATE_PREFIXES);
+  const isPrivate = isAdminRoute || isUserPrivate;
 
   // Keep Redux in sync so other components can also check
   useEffect(() => {
     dispatch(setIsPrivateRoute(isPrivate));
   }, [isPrivate, dispatch]);
 
+  // Determine whether to show navbar/footer
+  let showNav = true;
+  if (isAdminRoute) {
+    // Admin routes never show public navbar/footer
+    showNav = false;
+  } else if (isUserPrivate) {
+    // User private routes: show navbar only after auth is initialized AND user is authenticated
+    showNav = isInitialized && isAuthenticated;
+  }
+
   return (
     <>
       <AuthInitializer />
-      {!isPrivate && <Navbar />}
-      {!isPrivate && <MobileMenu />}
+      {showNav && <Navbar />}
+      {showNav && <MobileMenu />}
       <AuthModal />
       {children}
-      {!isPrivate && <Footer />}
+      {showNav && <Footer />}
     </>
   );
 }

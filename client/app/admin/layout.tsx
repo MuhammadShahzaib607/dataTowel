@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Menu, X, LogOut, ChevronLeft } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Menu, X, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { logout } from "@/lib/store/authSlice";
@@ -16,7 +16,16 @@ const sidebarLinks = [
     href: "/admin/dashboard",
     icon: LayoutDashboard,
   },
-  // Future sections go here
+  {
+    label: "Products",
+    href: "/admin/products",
+    icon: Package,
+  },
+  {
+    label: "Orders",
+    href: "/admin/orders",
+    icon: ShoppingCart,
+  },
 ];
 
 export default function AdminLayout({
@@ -57,7 +66,9 @@ export default function AdminLayout({
           <nav className="flex-1 px-4 py-6">
             <ul className="space-y-1">
               {sidebarLinks.map((link) => {
-                const isActive = pathname === link.href;
+                const isActive =
+                  pathname === link.href ||
+                  pathname.startsWith(link.href + "/");
                 return (
                   <li key={link.href}>
                     <Link
@@ -140,7 +151,9 @@ export default function AdminLayout({
                 <nav className="flex-1 px-4 py-6">
                   <ul className="space-y-1">
                     {sidebarLinks.map((link) => {
-                      const isActive = pathname === link.href;
+                      const isActive =
+                        pathname === link.href ||
+                        pathname.startsWith(link.href + "/");
                       return (
                         <li key={link.href}>
                           <Link
