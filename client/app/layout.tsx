@@ -5,6 +5,8 @@ import ReduxProvider from "@/components/providers/ReduxProvider";
 import Navbar from "@/components/layout/Navbar";
 import MobileMenu from "@/components/layout/MobileMenu";
 import Footer from "@/components/layout/Footer";
+import AuthModal from "@/components/auth/AuthModal";
+import AuthInitializer from "@/components/auth/AuthInitializer";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -40,8 +42,10 @@ export default function RootLayout({
     <html lang="en" className={`${manrope.variable} antialiased`}>
       <body>
         <ReduxProvider>
+          <AuthInitializer />
           <Navbar />
           <MobileMenu />
+          <AuthModal />
           {children}
           <Footer />
         </ReduxProvider>

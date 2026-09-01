@@ -1,15 +1,22 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, LogOut, User } from "lucide-react";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { closeMobileMenu } from "@/lib/store/uiSlice";
+import { closeMobileMenu, openAuthModal } from "@/lib/store/uiSlice";
+import { logout } from "@/lib/store/authSlice";
 import { navigationLinks, siteContent } from "@/lib/data/content";
 
 export default function MobileMenu() {
   const dispatch = useAppDispatch();
   const isOpen = useAppSelector((state) => state.ui.mobileMenuOpen);
+  const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch(closeMobileMenu());
+  };
 
   return (
     <AnimatePresence>
@@ -42,7 +49,7 @@ export default function MobileMenu() {
                 <button
                   aria-label="Close menu"
                   onClick={() => dispatch(closeMobileMenu())}
-                  className="w-10 h-10 flex items-center justify-center text-[#6F6F69] hover:text-[#171717] transition-colors"
+                  className="w-10 h-10 flex items-center justify-center text-[#6F6F69] hover:text-[#171717] transition-colors cursor-pointer"
                 >
                   <X size={22} strokeWidth={1.5} />
                 </button>
@@ -72,6 +79,61 @@ export default function MobileMenu() {
                     </motion.li>
                   ))}
                 </ul>
+
+                {/* Mobile auth section */}
+                <div className="mt-8 pt-6 border-t border-[#E8E6DF]/30">
+                  {isAuthenticated ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#171717] text-white flex items-center justify-center text-[15px] font-medium">
+                          {user?.username?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-[14px] font-medium text-[#171717]">{user?.username}</p>
+                          <p className="text-[12px] text-[#96958D]">{user?.email}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <Link
+                          href="/profile"
+                          onClick={() => dispatch(closeMobileMenu())}
+                          className="flex items-center gap-2 text-[13px] text-[#6F6F69] hover:text-[#171717] transition-colors cursor-pointer"
+                        >
+                          <User size={16} strokeWidth={1.5} />
+                          Profile
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center gap-2 text-[13px] text-[#6F6F69] hover:text-[#171717] transition-colors cursor-pointer"
+                        >
+                          <LogOut size={16} strokeWidth={1.5} />
+                          Logout
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          dispatch(closeMobileMenu());
+                          dispatch(openAuthModal("login"));
+                        }}
+                        className="flex-1 h-11 rounded-lg border border-[#171717] text-[13px] font-medium text-[#171717] hover:bg-[#171717] hover:text-white transition-all cursor-pointer"
+                      >
+                        Sign In
+                      </button>
+                      <button
+                        onClick={() => {
+                          dispatch(closeMobileMenu());
+                          dispatch(openAuthModal("signup"));
+                        }}
+                        className="flex-1 h-11 rounded-lg bg-[#171717] text-white text-[13px] font-medium hover:bg-[#2a2a2a] transition-all cursor-pointer"
+                      >
+                        Join
+                      </button>
+                    </div>
+                  )}
+                </div>
               </nav>
 
               {/* Footer */}
