@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import User from "../models/User.js";
 import { sendVerificationEmail } from "../services/emailService.js";
+import { getFirebaseAdminAuth } from "../config/firebaseAdmin.js";
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
@@ -44,6 +45,15 @@ export const register = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Password must be at least 6 characters",
+      });
+    }
+
+    // Prevent Google-authenticated users from registering with password
+    const existingGoogleUser = await User.findOne({ email, authProvider: "google" });
+    if (existingGoogleUser) {
+      return res.status(400).json({
+        success: false,
+        message: "This email is linked to a Google account. Please sign in with Google.",
       });
     }
 
@@ -277,6 +287,97 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error. Please try again.",
+    });
+  }
+};
+
+// POST /api/auth/google
+export const googleLogin = async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Firebase ID token is required",
+      });
+    }
+
+    // Verify the Firebase ID token server-side
+    let decodedToken;
+    try {
+      decodedToken = await getFirebaseAdminAuth().verifyIdToken(idToken);
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired Google authentication. Please try again.",
+      });
+    }
+
+    const { uid, email, name, picture, email_verified } = decodedToken;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "No email found in Google account",
+      });
+    }
+
+    // Check if user already exists by email
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // Existing user — link Google info safely, don't overwrite password or username
+      if (!user.googleId) {
+        user.googleId = uid;
+      }
+      if (!user.authProvider || user.authProvider === "local") {
+        user.authProvider = "google";
+      }
+      // Mark verified if Google confirms it
+      if (email_verified) {
+        user.isVerified = true;
+      }
+      // Update profile image only if user doesn't have one
+      if (picture && !user.profileImage) {
+        user.profileImage = picture;
+      }
+      await user.save();
+    } else {
+      // Create new user from Google
+      const username = name?.trim() || email.split("@")[0];
+
+      user = await User.create({
+        username,
+        email,
+        password: null, // No password for Google users
+        isVerified: email_verified === true,
+        isAdmin: false,
+        authProvider: "google",
+        googleId: uid,
+        profileImage: picture || "",
+      });
+    }
+
+    const token = generateToken(user._id);
+
+    res.json({
+      success: true,
+      message: "Google sign-in successful",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        isVerified: user.isVerified,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("Google login error:", error.message);
     res.status(500).json({
       success: false,
       message: "Server error. Please try again.",

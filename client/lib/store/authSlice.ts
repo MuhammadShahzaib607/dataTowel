@@ -124,6 +124,26 @@ export const resendOtp = createAsyncThunk<
   }
 });
 
+// Google Login
+export const googleLoginUser = createAsyncThunk<
+  AuthResponse,
+  { idToken: string },
+  { rejectValue: string }
+>("auth/googleLogin", async ({ idToken }, { rejectWithValue }) => {
+  try {
+    const data = await apiRequest<AuthResponse>("/auth/google", {
+      method: "POST",
+      body: { idToken },
+    });
+    if (data.token) {
+      localStorage.setItem("datatowel_token", data.token);
+    }
+    return data;
+  } catch (err) {
+    return rejectWithValue(err instanceof Error ? err.message : "Google sign-in failed");
+  }
+});
+
 // Restore user from token
 export const restoreUser = createAsyncThunk<
   MeResponse,
@@ -237,6 +257,23 @@ const authSlice = createSlice({
       })
       .addCase(resendOtp.rejected, (state, action) => {
         state.error = action.payload || "Failed to resend code";
+      });
+
+    // Google Login
+    builder
+      .addCase(googleLoginUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(googleLoginUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.token = action.payload.token || null;
+        state.isAuthenticated = true;
+      })
+      .addCase(googleLoginUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || "Google sign-in failed";
       });
 
     // Restore user
