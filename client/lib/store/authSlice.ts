@@ -5,6 +5,12 @@ export interface AuthUser {
   id: string;
   username: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  city?: string;
+  country?: string;
+  profileImage?: string;
   isAdmin: boolean;
   isVerified?: boolean;
 }
@@ -38,6 +44,17 @@ interface AuthResponse {
 
 interface MeResponse {
   success: boolean;
+  user: AuthUser;
+}
+
+interface ProfileResponse {
+  success: boolean;
+  user: AuthUser;
+}
+
+interface ImageUploadResponse {
+  success: boolean;
+  profileImage: string;
   user: AuthUser;
 }
 
@@ -162,6 +179,58 @@ export const restoreUser = createAsyncThunk<
   }
 });
 
+// Update profile
+export const updateProfile = createAsyncThunk<
+  ProfileResponse,
+  { firstName?: string; lastName?: string; phone?: string; city?: string; country?: string },
+  { rejectValue: string }
+>("auth/updateProfile", async (profileData, { getState, rejectWithValue }) => {
+  try {
+    const state = getState() as { auth: AuthState };
+    const token = state.auth.token;
+    const data = await apiRequest<ProfileResponse>("/users/profile", {
+      method: "PUT",
+      body: profileData,
+      token: token || undefined,
+    });
+    return data;
+  } catch (err) {
+    return rejectWithValue(err instanceof Error ? err.message : "Failed to update profile");
+  }
+});
+
+// Upload profile image
+export const uploadProfileImage = createAsyncThunk<
+  ImageUploadResponse,
+  { file: File },
+  { rejectValue: string }
+>("auth/uploadProfileImage", async ({ file }, { getState, rejectWithValue }) => {
+  try {
+    const state = getState() as { auth: AuthState };
+    const token = state.auth.token;
+
+    const formData = new FormData();
+    formData.append("profileImage", file);
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
+    const res = await fetch(`${API_BASE_URL}/users/profile/image`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || "Failed to upload image");
+    }
+    return data as ImageUploadResponse;
+  } catch (err) {
+    return rejectWithValue(err instanceof Error ? err.message : "Failed to upload image");
+  }
+});
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -179,6 +248,11 @@ const authSlice = createSlice({
     },
     setPendingVerificationEmail(state, action) {
       state.pendingVerificationEmail = action.payload;
+    },
+    updateUserFields(state, action) {
+      if (state.user) {
+        Object.assign(state.user, action.payload);
+      }
     },
   },
   extraReducers: (builder) => {
@@ -292,8 +366,38 @@ const authSlice = createSlice({
         state.token = null;
         state.isAuthenticated = false;
       });
+
+    // Update profile
+    builder
+      .addCase(updateProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+      })
+      .addCase(updateProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || "Failed to update profile";
+      });
+
+    // Upload profile image
+    builder
+      .addCase(uploadProfileImage.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(uploadProfileImage.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+      })
+      .addCase(uploadProfileImage.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || "Failed to upload image";
+      });
   },
 });
 
-export const { logout, clearAuthError, setPendingVerificationEmail } = authSlice.actions;
+export const { logout, clearAuthError, setPendingVerificationEmail, updateUserFields } = authSlice.actions;
 export default authSlice.reducer;

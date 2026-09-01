@@ -85,11 +85,20 @@ export default function MobileMenu() {
                   {isAuthenticated ? (
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#171717] text-white flex items-center justify-center text-[15px] font-medium">
-                          {user?.username?.charAt(0).toUpperCase()}
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-[#171717] text-white flex items-center justify-center text-[15px] font-medium">
+                          {user?.profileImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={user.profileImage}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span>{(user?.firstName?.[0] || user?.username?.[0] || "U").toUpperCase()}</span>
+                          )}
                         </div>
                         <div>
-                          <p className="text-[14px] font-medium text-[#171717]">{user?.username}</p>
+                          <p className="text-[14px] font-medium text-[#171717]">{user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.username}</p>
                           <p className="text-[12px] text-[#96958D]">{user?.email}</p>
                         </div>
                       </div>

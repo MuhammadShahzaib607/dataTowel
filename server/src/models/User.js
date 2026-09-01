@@ -41,6 +41,36 @@ const userSchema = new mongoose.Schema(
       enum: ["local", "google"],
       default: "local",
     },
+    firstName: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+      default: "",
+    },
+    lastName: {
+      type: String,
+      trim: true,
+      maxlength: 50,
+      default: "",
+    },
+    phone: {
+      type: String,
+      trim: true,
+      maxlength: 30,
+      default: "",
+    },
+    city: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+      default: "",
+    },
+    country: {
+      type: String,
+      trim: true,
+      maxlength: 100,
+      default: "",
+    },
     profileImage: {
       type: String,
       default: "",

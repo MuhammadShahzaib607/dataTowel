@@ -146,8 +146,17 @@ export default function Navbar() {
                   className="hidden md:flex w-10 h-10 items-center justify-center transition-colors duration-300 cursor-pointer"
                   style={{ color: navTextColor }}
                 >
-                  <div className="w-8 h-8 rounded-full bg-[#171717] text-white flex items-center justify-center text-[13px] font-medium">
-                    {user?.username?.charAt(0).toUpperCase()}
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-[#171717] text-white flex items-center justify-center text-[13px] font-medium">
+                    {user?.profileImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={user.profileImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{(user?.firstName?.[0] || user?.username?.[0] || "U").toUpperCase()}</span>
+                    )}
                   </div>
                 </button>
 
@@ -162,7 +171,7 @@ export default function Navbar() {
                       className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl shadow-xl border border-[#E8E6DF]/60 overflow-hidden"
                     >
                       <div className="px-4 py-3 border-b border-[#E8E6DF]/50">
-                        <p className="text-[13px] font-medium text-[#171717]">{user?.username}</p>
+                        <p className="text-[13px] font-medium text-[#171717]">{user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.username}</p>
                         <p className="text-[11px] text-[#96958D] truncate">{user?.email}</p>
                       </div>
                       <div className="py-1">
