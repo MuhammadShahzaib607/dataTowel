@@ -49,7 +49,7 @@ export const register = async (req, res) => {
     }
 
     // Prevent Google-authenticated users from registering with password
-    const existingGoogleUser = await User.findOne({ email, authProvider: "google" });
+    const existingGoogleUser = await User.findOne({ email, firebaseUid: { $exists: true, $ne: null } });
     if (existingGoogleUser) {
       return res.status(400).json({
         success: false,
@@ -310,7 +310,9 @@ export const googleLogin = async (req, res) => {
     let decodedToken;
     try {
       decodedToken = await getFirebaseAdminAuth().verifyIdToken(idToken);
+      console.log("[Google Auth] Token verified for UID:", decodedToken.uid);
     } catch (error) {
+      console.error("[Google Auth] verifyIdToken failed:", error.code || error.message);
       return res.status(401).json({
         success: false,
         message: "Invalid or expired Google authentication. Please try again.",
@@ -326,13 +328,13 @@ export const googleLogin = async (req, res) => {
       });
     }
 
-    // Check if user already exists by email
-    let user = await User.findOne({ email });
+    // Check if user already exists by firebaseUid or email
+    let user = await User.findOne({ $or: [{ firebaseUid: uid }, { email }] });
 
     if (user) {
       // Existing user — link Google info safely, don't overwrite password or username
-      if (!user.googleId) {
-        user.googleId = uid;
+      if (!user.firebaseUid) {
+        user.firebaseUid = uid;
       }
       if (!user.authProvider || user.authProvider === "local") {
         user.authProvider = "google";
@@ -353,11 +355,10 @@ export const googleLogin = async (req, res) => {
       user = await User.create({
         username,
         email,
-        password: null, // No password for Google users
         isVerified: email_verified === true,
         isAdmin: false,
         authProvider: "google",
-        googleId: uid,
+        firebaseUid: uid,
         profileImage: picture || "",
       });
     }

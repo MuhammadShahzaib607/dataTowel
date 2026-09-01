@@ -31,14 +31,15 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    firebaseUid: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
     authProvider: {
       type: String,
       enum: ["local", "google"],
       default: "local",
-    },
-    googleId: {
-      type: String,
-      sparse: true,
     },
     profileImage: {
       type: String,

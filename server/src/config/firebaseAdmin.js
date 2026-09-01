@@ -6,7 +6,8 @@ let _auth = null;
 export function getFirebaseAdminAuth() {
   if (_auth) return _auth;
 
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+  const privateKey = privateKeyRaw?.replace(/\\n/g, "\n");
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
 
@@ -14,6 +15,8 @@ export function getFirebaseAdminAuth() {
   if (!projectId) throw new Error("Missing FIREBASE_PROJECT_ID env var");
   if (!clientEmail) throw new Error("Missing FIREBASE_CLIENT_EMAIL env var");
   if (!privateKey) throw new Error("Missing FIREBASE_PRIVATE_KEY env var");
+
+  console.log("[Firebase Admin] Initializing with project:", projectId);
 
   const app =
     getApps().length > 0
@@ -27,5 +30,6 @@ export function getFirebaseAdminAuth() {
         });
 
   _auth = getAuth(app);
+  console.log("[Firebase Admin] Successfully initialized");
   return _auth;
 }
