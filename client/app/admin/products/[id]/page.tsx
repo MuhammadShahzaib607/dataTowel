@@ -89,7 +89,7 @@ export default function ProductDetailPage() {
   }, [product]);
 
   const formatDate = (dateStr: string) => {
-    if (!dateStr) return "—";
+    if (!dateStr) return "–";
     return new Date(dateStr).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -279,7 +279,7 @@ export default function ProductDetailPage() {
                   Original
                 </p>
                 <p className="text-[15px] font-semibold text-[#171717]">
-                  {product.price !== null ? `₨${product.price}` : "—"}
+                  {product.price !== null ? `₨${product.price}` : "–"}
                 </p>
               </div>
               <div className="bg-[#FAFAF7] rounded-lg p-3">
@@ -289,7 +289,7 @@ export default function ProductDetailPage() {
                 <p className="text-[15px] font-semibold text-[#171717]">
                   {product.discountedPrice !== null
                     ? `₨${product.discountedPrice}`
-                    : "—"}
+                    : "–"}
                 </p>
               </div>
               <div className="bg-[#FAFAF7] rounded-lg p-3">
@@ -297,7 +297,7 @@ export default function ProductDetailPage() {
                   Final
                 </p>
                 <p className="text-[15px] font-semibold text-[#171717]">
-                  {finalPrice !== null ? `₨${finalPrice}` : "—"}
+                  {finalPrice !== null ? `₨${finalPrice}` : "–"}
                 </p>
                 {product.discountedPrice !== null &&
                   product.price !== null &&

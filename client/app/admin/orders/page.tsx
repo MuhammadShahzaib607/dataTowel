@@ -179,7 +179,7 @@ export default function AdminOrdersPage() {
                     <div>
                       <p className="text-[#96958D] mb-1">Customer</p>
                       <p className="text-[#171717]">
-                        {viewingOrder.customerName || "—"}
+                        {viewingOrder.customerName || "–"}
                       </p>
                     </div>
                     <div>
@@ -369,10 +369,10 @@ export default function AdminOrdersPage() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-[13px] text-[#171717]">
-                        {order.customerName || "—"}
+                        {order.customerName || "–"}
                       </p>
                       <p className="text-[11px] text-[#96958D]">
-                        {order.customerEmail || "—"}
+                        {order.customerEmail || "–"}
                       </p>
                     </td>
                     <td className="px-6 py-4">

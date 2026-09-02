@@ -8,7 +8,7 @@ export const siteContent = {
     eyebrow: "TRUSTED BY HOTELS, RESTAURANTS & RETAILERS ACROSS PAKISTAN",
     heading: "Quality You Can Feel.\nSupply You Can Trust.",
     subheading:
-      "Premium cotton towels, bedsheets and linens — supplied in bulk to hotels, restaurants, gyms and retailers who care about quality.",
+      "Premium cotton towels, bedsheets and linens supplied in bulk to hotels, restaurants, gyms and retailers who care about quality.",
     cta: "View Our Products",
     secondaryCta: "Request a Bulk Quote",
     image: "/images/hero-towel.png",
@@ -22,13 +22,13 @@ export const siteContent = {
   intro: {
     heading: "Comfort Your\nCustomers Will Notice.",
     paragraph:
-      "Whether it's a hotel guest room, a restaurant table, or a gym locker room — the quality of the towel matters more than people realize. DataTowel supplies premium cotton towels, bedsheets and linens, woven for softness and built to last, at prices that make sense for bulk orders.",
+      "Whether it's a hotel guest room, a restaurant table, or a gym locker room, the quality of the towel matters more than people realize. DataTowel supplies premium cotton towels, bedsheets and linens, woven for softness and built to last, at prices that make sense for bulk orders.",
   },
 
   collection: {
     heading: "Our Products",
     subheading:
-      "Premium cotton. Bulk pricing. Reliable supply — for every business that needs quality linen.",
+      "Premium cotton. Bulk pricing. Reliable supply for every business that needs quality linen.",
   },
 
   editorial: {
@@ -36,7 +36,7 @@ export const siteContent = {
     eyebrow: "RELIABLE. CONSISTENT. EVERY ORDER.",
     heading: "Softness That Lasts,\nOrder After Order.",
     paragraph:
-      "From five-star hotels to neighborhood restaurants, we deliver the same quality every time — because your customers deserve better than the ordinary.",
+      "From five-star hotels to neighborhood restaurants, we deliver the same quality every time, because your customers deserve better than the ordinary.",
     cta: "See Our Products",
   },
 
@@ -47,7 +47,7 @@ export const siteContent = {
         number: "01",
         title: "Premium Cotton",
         description:
-          "100% cotton, soft and breathable — the quality your customers will actually feel.",
+          "100% cotton, soft and breathable, the quality your customers will actually feel.",
       },
       {
         number: "02",
@@ -59,13 +59,13 @@ export const siteContent = {
         number: "03",
         title: "Thoughtful GSM",
         description:
-          "Consistent weight and weave, batch after batch — so every order matches the last.",
+          "Consistent weight and weave, batch after batch, so every order matches the last.",
       },
       {
         number: "04",
         title: "Made to Last",
         description:
-          "Built for daily commercial washing — trusted by hotels, restaurants and gyms.",
+          "Built for daily commercial washing, trusted by hotels, restaurants and gyms.",
       },
     ],
   },
@@ -74,7 +74,7 @@ export const siteContent = {
     image: "/images/feel-the-difference.png",
     heading: "Feel the Difference.",
     paragraph:
-      "Every DataTowel product is woven from long-staple cotton at an optimal 600 GSM density. The result: towels that stay soft, absorbent and durable — even after hundreds of commercial washes.",
+      "Every DataTowel product is woven from long-staple cotton at an optimal 600 GSM density. The result: towels that stay soft, absorbent and durable, even after hundreds of commercial washes.",
   },
 
   video: {
@@ -83,7 +83,7 @@ export const siteContent = {
     eyebrow: "TRUSTED BY BUSINESSES ACROSS PAKISTAN",
     heading: "Quality That Speaks For Itself.",
     description:
-      "Premium cotton towels, bedsheets and linens — supplied in bulk to hotels, restaurants, gyms and retail stores who care about what their customers touch every day.",
+      "Premium cotton towels, bedsheets and linens supplied in bulk to hotels, restaurants, gyms and retail stores who care about what their customers touch every day.",
     cta: "Explore Collection",
     secondaryCta: "Get a Bulk Quote",
   },
@@ -92,7 +92,7 @@ export const siteContent = {
     image: "/images/ritual-story.png",
     heading: "Built On Trust, One Order at a Time.",
     paragraph:
-      "DataTowel started as a small family supplier — and grew by keeping one promise: consistent quality, delivered on time. Today, we supply hotels, restaurants, gyms and retailers across Pakistan with the towels, bedsheets and linens they rely on every single day.",
+      "DataTowel started as a small family supplier, and grew by keeping one promise: consistent quality, delivered on time. Today, we supply hotels, restaurants, gyms and retailers across Pakistan with the towels, bedsheets and linens they rely on every single day.",
     cta: "Our Story",
     ctaHref: "/about",
   },
@@ -108,7 +108,7 @@ export const siteContent = {
     items: [
       {
         quote:
-          "Best decision we made for our hotel — great quality, fair prices, and they never let us down on delivery.",
+          "Best decision we made for our hotel, great quality, fair prices, and they never let us down on delivery.",
         name: "Owais Malik",
         location: "Boutique Hotel Owner, Karachi",
         rating: 5,
@@ -146,14 +146,14 @@ export const siteContent = {
   newsletter: {
     heading: "Get Bulk Pricing Updates",
     paragraph:
-      "New arrivals, seasonal offers, and exclusive bulk discounts — straight to your inbox.",
+      "New arrivals, seasonal offers, and exclusive bulk discounts straight to your inbox.",
     placeholder: "Your email address",
     cta: "Subscribe",
   },
 
   footer: {
     description:
-      "Premium cotton towels, bedsheets and linens — supplied in bulk to hotels, restaurants, gyms and retailers across Pakistan.",
+      "Premium cotton towels, bedsheets and linens supplied in bulk to hotels, restaurants, gyms and retailers across Pakistan.",
     sections: [
       {
         title: "Shop",

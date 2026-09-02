@@ -62,7 +62,7 @@ export default function AboutHero() {
             className="text-[16px] md:text-[17px] text-white/70 max-w-[520px] leading-[1.65] mb-10"
           >
             We supply premium cotton towels, bedsheets and linens to businesses
-            across Pakistan — with consistent quality, reliable supply and
+            across Pakistan, with consistent quality, reliable supply and
             pricing that makes sense for bulk orders.
           </motion.p>
 

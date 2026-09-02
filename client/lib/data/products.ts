@@ -18,7 +18,7 @@ export const products: Product[] = [
     id: "premium-cotton-bedsheet",
     name: "Premium Cotton Bedsheet",
     shortDescription:
-      "Soft, breathable and durable — ideal for hotel rooms, guesthouses and rental properties.",
+      "Soft, breathable and durable, ideal for hotel rooms, guesthouses and rental properties.",
     price: "From PKR 2,499",
     image: "/images/bedsheet.png",
     category: "Bedsheets",

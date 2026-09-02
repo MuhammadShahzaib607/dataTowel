@@ -44,7 +44,7 @@ export default function OurStory() {
               </p>
               <p>
                 We began as a small family supplier, serving local businesses
-                and learning what they actually needed — products that feel
+                and learning what they actually needed, products that feel
                 good, survive daily use and arrive when promised.
               </p>
               <p>

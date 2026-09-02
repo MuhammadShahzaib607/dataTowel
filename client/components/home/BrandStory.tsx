@@ -29,7 +29,7 @@ export default function BrandStory() {
           >
             <img
               src={brandStory.image}
-              alt="DataTowel brand story — premium cotton textiles"
+              alt="DataTowel brand story, premium cotton textiles"
               className="absolute inset-0 w-full h-full object-cover"
             />
           </motion.div>

@@ -230,7 +230,7 @@ export default function ContactInfoForm() {
                 <span className="text-[#171717] font-semibold">
                   BULK INQUIRIES
                 </span>{" "}
-                — Usually best for hotels, restaurants, gyms, clinics and
+                Usually best for hotels, restaurants, gyms, clinics and
                 retailers.
               </p>
             </motion.div>
@@ -269,7 +269,7 @@ export default function ContactInfoForm() {
                     <Check size={24} strokeWidth={2} className="text-white" />
                   </div>
                   <h4 className="text-[20px] font-medium text-[#171717]">
-                    Thanks — your inquiry has been received.
+                    Thanks, your inquiry has been received.
                   </h4>
                   <p className="mt-3 text-[15px] text-[#6F6F69]">
                     We&apos;ll get back to you shortly.

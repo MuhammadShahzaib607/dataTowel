@@ -58,7 +58,7 @@ A final price will be confirmed by DataTowel before any order is finalized. Disp
     title: "Quotations & Orders",
     content: `Submitting an inquiry or request through our website does not automatically create a confirmed order.
 
-An order becomes confirmed only after DataTowel communicates acceptance and all required commercial details — including pricing, specifications, quantities and delivery terms — have been agreed upon by both parties.`,
+An order becomes confirmed only after DataTowel communicates acceptance and all required commercial details, including pricing, specifications, quantities and delivery terms, have been agreed upon by both parties.`,
   },
   {
     id: "payments",
@@ -90,7 +90,7 @@ Email: datatowel@gmail.com`,
     id: "intellectual-property",
     number: "09",
     title: "Intellectual Property",
-    content: `All content on the DataTowel website — including branding, logos, photographs, text, graphics, layout and design — is protected by applicable intellectual property laws.
+    content: `All content on the DataTowel website, including branding, logos, photographs, text, graphics, layout and design, is protected by applicable intellectual property laws.
 
 You may not copy, reproduce, distribute or create derivative works from our content without prior written permission, except where permitted by applicable law.`,
   },

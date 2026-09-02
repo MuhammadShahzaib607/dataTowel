@@ -56,7 +56,7 @@ export default function ProductsPage() {
           Our Products
         </h1>
         <p className="mt-2 text-[15px] text-[#6F6F69] max-w-[600px]">
-          Premium cotton towels, bedsheets and linens — supplied in bulk to hotels, restaurants, gyms and retailers.
+          Premium cotton towels, bedsheets and linens supplied in bulk to hotels, restaurants, gyms and retailers.
         </p>
       </div>
 

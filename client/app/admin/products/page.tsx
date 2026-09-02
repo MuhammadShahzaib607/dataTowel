@@ -267,7 +267,7 @@ export default function AdminProductsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-[13px] text-[#6F6F69]">
-                        {product.category || "—"}
+                        {product.category || "–"}
                       </p>
                     </td>
                     <td className="px-6 py-4">
@@ -277,7 +277,7 @@ export default function AdminProductsPage() {
                             <span className="line-through text-[#96958D]">
                               {product.price !== null
                                 ? `₨${product.price}`
-                                : "—"}
+                                : "–"}
                             </span>
                             <span className="ml-2 text-[#171717] font-medium">
                               ₨{product.discountedPrice}
@@ -287,7 +287,7 @@ export default function AdminProductsPage() {
                           <span className="text-[#171717]">
                             {product.price !== null
                               ? `₨${product.price}`
-                              : "—"}
+                              : "–"}
                           </span>
                         )}
                       </div>
@@ -416,7 +416,7 @@ export default function AdminProductsPage() {
                     {product.discountedPrice !== null ? (
                       <>
                         <span className="line-through text-[#96958D]">
-                          {product.price !== null ? `₨${product.price}` : "—"}
+                          {product.price !== null ? `₨${product.price}` : "–"}
                         </span>
                         <span className="ml-2 font-medium">
                           ₨{product.discountedPrice}
@@ -424,7 +424,7 @@ export default function AdminProductsPage() {
                       </>
                     ) : (
                       <span>
-                        {product.price !== null ? `₨${product.price}` : "—"}
+                        {product.price !== null ? `₨${product.price}` : "–"}
                       </span>
                     )}
                   </div>

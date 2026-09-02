@@ -60,7 +60,7 @@ export default function Newsletter() {
           ) : (
             <form
               onSubmit={handleSubmit}
-              className="mt-8 flex flex-col sm:flex-row gap-3 max-w-md mx-auto"
+              className="mt-8 flex flex-col sm:flex-row gap-3 max-w-lg mx-auto w-full"
             >
               <input
                 type="email"
@@ -68,11 +68,11 @@ export default function Newsletter() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={newsletter.placeholder}
                 required
-                className="flex-1 px-5 h-[52px] bg-white border border-[#E8E6DF] rounded-full text-[14px] text-[#171717] placeholder:text-[#96958D] focus:outline-none focus:border-[#D8CBB8] transition-colors duration-300"
+                className="flex-1 min-w-0 w-full px-5 h-[52px] bg-white border border-[#E8E6DF] rounded-full text-[14px] text-[#171717] placeholder:text-[#96958D] focus:outline-none focus:border-[#D8CBB8] transition-colors duration-300"
               />
               <button
                 type="submit"
-                className="group inline-flex items-center justify-center gap-2 bg-[#171717] text-white px-8 h-[52px] rounded-full text-[14px] font-medium hover:bg-[#2a2a2a] transition-colors duration-300 hover:-translate-y-[2px]"
+                className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#171717] text-white px-8 h-[52px] rounded-full text-[14px] font-medium hover:bg-[#2a2a2a] transition-colors duration-300 hover:-translate-y-[2px] flex-shrink-0"
               >
                 {newsletter.cta}
                 <ArrowRight
