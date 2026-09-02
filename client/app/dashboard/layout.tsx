@@ -25,16 +25,19 @@ const sidebarLinks = [
     label: "Dashboard",
     href: "/dashboard",
     icon: LayoutDashboard,
+    exact: true,
   },
   {
     label: "Orders",
     href: "/dashboard/orders",
     icon: Package,
+    exact: false,
   },
   {
     label: "Profile",
-    href: "/profile",
+    href: "/dashboard/profile",
     icon: User,
+    exact: true,
   },
 ];
 
@@ -58,7 +61,7 @@ export default function UserDashboardLayout({
     <ProtectedRoute>
       <div className="min-h-screen flex bg-[#FAFAF7]">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex flex-col w-[260px] bg-white border-r border-[#E8E6DF]/50 min-h-screen">
+        <aside className="hidden lg:flex flex-col w-[260px] bg-white border-r border-[#E8E6DF]/50 sticky top-0 h-screen">
           {/* Logo */}
           <div className="h-[72px] flex items-center px-6 border-b border-[#E8E6DF]/50">
             <Link
@@ -76,9 +79,9 @@ export default function UserDashboardLayout({
           <nav className="flex-1 px-4 py-6">
             <ul className="space-y-1">
               {sidebarLinks.map((link) => {
-                const isActive =
-                  pathname === link.href ||
-                  pathname.startsWith(link.href + "/");
+                const isActive = link.exact
+                  ? pathname === link.href
+                  : pathname === link.href || pathname.startsWith(link.href + "/");
                 return (
                   <li key={link.href}>
                     <Link
@@ -177,9 +180,9 @@ export default function UserDashboardLayout({
                 <nav className="flex-1 px-4 py-6">
                   <ul className="space-y-1">
                     {sidebarLinks.map((link) => {
-                      const isActive =
-                        pathname === link.href ||
-                        pathname.startsWith(link.href + "/");
+                      const isActive = link.exact
+                        ? pathname === link.href
+                        : pathname === link.href || pathname.startsWith(link.href + "/");
                       return (
                         <li key={link.href}>
                           <Link

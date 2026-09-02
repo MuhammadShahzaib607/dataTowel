@@ -76,8 +76,10 @@ function DashboardContent() {
 
   const recentOrders = orders.slice(0, 5);
 
-  const formatStatus = (s: string) =>
-    s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const formatStatus = (s?: string | null) => {
+    if (!s) return "Unknown";
+    return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  };
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("en-US", {
@@ -170,7 +172,7 @@ function DashboardContent() {
         </div>
 
         <div
-          onClick={() => router.push("/profile")}
+          onClick={() => router.push("/dashboard/profile")}
           className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5 flex items-center gap-4 cursor-pointer hover:shadow-md transition-all"
         >
           <div className="w-10 h-10 rounded-lg bg-[#F2EFE8] flex items-center justify-center">

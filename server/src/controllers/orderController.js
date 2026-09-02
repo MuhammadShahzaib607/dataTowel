@@ -3,12 +3,18 @@ import Order from "../models/Order.js";
 function sanitizeOrder(order) {
   return {
     id: order._id,
+    orderNumber: order.orderNumber,
     customer: order.customer,
     customerName: order.customerName,
     customerEmail: order.customerEmail,
     items: order.items,
     totalAmount: order.totalAmount,
     notes: order.notes,
+    paymentStatus: order.paymentStatus,
+    paymentProof: order.paymentProof,
+    bankDetails: order.bankDetails,
+    orderStatus: order.orderStatus,
+    statusHistory: order.statusHistory,
     isActive: order.isActive,
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
@@ -52,25 +58,100 @@ export const createOrder = async (req, res) => {
 // GET /api/orders
 export const getOrders = async (req, res) => {
   try {
-    const { isActive, search } = req.query;
+    const {
+      isActive, search, orderId, customerName, customerEmail,
+      customerPhone, orderStatus, paymentStatus,
+      fromDate, toDate, minAmount, maxAmount,
+    } = req.query;
     const filter = {};
 
     if (isActive !== undefined) filter.isActive = isActive === "true";
-    if (search) {
+
+    // Order ID search (orderNumber field)
+    if (orderId && orderId.trim()) {
+      filter.orderNumber = { $regex: orderId.trim(), $options: "i" };
+    }
+
+    // Customer name search
+    if (customerName && customerName.trim()) {
+      filter.customerName = { $regex: customerName.trim(), $options: "i" };
+    }
+
+    // Customer email search
+    if (customerEmail && customerEmail.trim()) {
+      filter.customerEmail = { $regex: customerEmail.trim(), $options: "i" };
+    }
+
+    // Customer phone search (phone is on the user model, not on order — search via populated customer)
+    // We handle this after the initial query if needed
+
+    // Legacy search parameter (searches name + email)
+    if (search && search.trim()) {
       filter.$or = [
-        { customerName: { $regex: search, $options: "i" } },
-        { customerEmail: { $regex: search, $options: "i" } },
+        { customerName: { $regex: search.trim(), $options: "i" } },
+        { customerEmail: { $regex: search.trim(), $options: "i" } },
+        { orderNumber: { $regex: search.trim(), $options: "i" } },
       ];
     }
 
-    const orders = await Order.find(filter)
+    // Order status filter
+    if (orderStatus && orderStatus.trim() && orderStatus !== "all") {
+      filter.orderStatus = orderStatus.trim();
+    }
+
+    // Payment status filter
+    if (paymentStatus && paymentStatus.trim() && paymentStatus !== "all") {
+      filter.paymentStatus = paymentStatus.trim();
+    }
+
+    // Date range filter
+    if (fromDate || toDate) {
+      filter.createdAt = {};
+      if (fromDate) {
+        const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
+        filter.createdAt.$gte = from;
+      }
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = to;
+      }
+    }
+
+    // Amount range filter
+    if (minAmount || maxAmount) {
+      filter.totalAmount = {};
+      if (minAmount) filter.totalAmount.$gte = Number(minAmount);
+      if (maxAmount) filter.totalAmount.$lte = Number(maxAmount);
+    }
+
+    // Limit support for overview compact view
+    const limit = req.query.limit ? Math.min(Number(req.query.limit), 100) : 0;
+
+    let query = Order.find(filter)
       .sort({ createdAt: -1 })
-      .populate("customer", "username email")
+      .populate("customer", "username email phone")
       .lean();
+
+    if (limit > 0) query = query.limit(limit);
+
+    const orders = await query;
+
+    // If customerPhone filter was requested, do a post-query filter
+    // since phone is on the User model
+    let filteredOrders = orders;
+    if (customerPhone && customerPhone.trim()) {
+      const phoneRegex = new RegExp(customerPhone.trim(), "i");
+      filteredOrders = orders.filter((o) =>
+        o.customer && phoneRegex.test(o.customer.phone || "")
+      );
+    }
 
     res.json({
       success: true,
-      orders: orders.map((o) => ({ ...o, id: o._id })),
+      orders: filteredOrders.map((o) => ({ ...o, id: o._id })),
+      total: filteredOrders.length,
     });
   } catch (error) {
     console.error("Get orders error:", error.message);
@@ -253,21 +334,29 @@ export const updateOrderStatus = async (req, res) => {
 // GET /api/orders/stats
 export const getOrderStats = async (req, res) => {
   try {
-    const [totalOrders, activeOrders, totalRevenue] = await Promise.all([
+    const [totalOrders, activeOrders, deliveredRevenueResult, latestOrders] = await Promise.all([
       Order.countDocuments(),
       Order.countDocuments({ isActive: true }),
       Order.aggregate([
-        { $match: { isActive: true } },
+        { $match: { orderStatus: "delivered" } },
         { $group: { _id: null, total: { $sum: "$totalAmount" } } },
       ]),
+      Order.find()
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .populate("customer", "username email")
+        .lean(),
     ]);
+
+    const deliveredRevenue = deliveredRevenueResult.length > 0 ? deliveredRevenueResult[0].total : 0;
 
     res.json({
       success: true,
       stats: {
         totalOrders,
         activeOrders,
-        totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0,
+        deliveredRevenue,
+        latestOrders: latestOrders.map((o) => ({ ...o, id: o._id })),
       },
     });
   } catch (error) {

@@ -3,16 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
-  ArrowLeft,
-  Loader2,
-  Upload,
-  CheckCircle,
-  XCircle,
+  ArrowLeft, Loader2, Upload, CheckCircle, XCircle, MessageCircle, Mail,
 } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
+
+const WHATSAPP_NUMBER = "923403004439";
+const CONTACT_EMAIL = "datatowel.admin@gmail.com";
 
 interface OrderItem {
   product: string;
@@ -70,6 +69,23 @@ const statusLabels: Record<string, string> = {
   dispatched: "Dispatched",
   delivered: "Delivered",
   cancelled: "Cancelled",
+};
+
+const statusColors: Record<string, string> = {
+  pending: "bg-yellow-50 text-yellow-700",
+  submitted: "bg-blue-50 text-blue-700",
+  verified: "bg-green-50 text-green-700",
+  rejected: "bg-red-50 text-red-700",
+  pending_payment: "bg-yellow-50 text-yellow-700",
+  processing: "bg-blue-50 text-blue-700",
+  dispatched: "bg-purple-50 text-purple-700",
+  delivered: "bg-green-50 text-green-700",
+  cancelled: "bg-gray-100 text-[#96958D]",
+};
+
+const formatStatus = (s?: string | null) => {
+  if (!s) return "Unknown";
+  return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 export default function OrderDetailPage() {
@@ -189,9 +205,6 @@ export default function OrderDetailPage() {
       minute: "2-digit",
     });
 
-  const formatStatus = (s: string) =>
-    s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
   const canCancel =
     order && ["pending_payment", "processing"].includes(order.orderStatus);
 
@@ -208,7 +221,7 @@ export default function OrderDetailPage() {
       <div>
         <button
           onClick={() => router.push("/dashboard/orders")}
-          className="flex items-center gap-2 text-[13px] font-medium text-[#6F6F69] hover:text-[#171717] cursor-pointer mb-8"
+          className="flex items-center gap-2 text-[13px] font-medium text-[#6F6F69] hover:text-[#171717] cursor-pointer mb-6"
         >
           <ArrowLeft size={16} strokeWidth={1.5} /> Back to Orders
         </button>
@@ -223,325 +236,376 @@ export default function OrderDetailPage() {
 
   if (!order) return null;
 
+  const orderLabel = order.orderNumber || `#${order.id.slice(-6).toUpperCase()}`;
+  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hello DataTowel, I want to contact you regarding my order ${orderLabel}.`)}`;
+  const emailUrl = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Order Inquiry - ${orderLabel}`)}`;
+
   return (
     <div>
-      <button
-        onClick={() => router.push("/dashboard/orders")}
-        className="flex items-center gap-2 text-[13px] font-medium text-[#6F6F69] hover:text-[#171717] cursor-pointer mb-6"
-      >
-        <ArrowLeft size={16} strokeWidth={1.5} /> Back to Orders
-      </button>
-
-      {error && (
-        <div className="mb-6 px-4 py-3 rounded-lg bg-red-50 text-red-600 text-[13px]">
-          {error}
-        </div>
-      )}
-
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-[22px] font-semibold text-[#171717] tracking-tight">
-            {order.orderNumber ||
-              `#${order.id.slice(-6).toUpperCase()}`}
-          </h1>
-          <p className="text-[13px] text-[#96958D] mt-1">
-            {formatDate(order.createdAt)}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium ${
-              order.paymentStatus === "verified"
-                ? "bg-green-50 text-green-700"
-                : order.paymentStatus === "rejected"
-                  ? "bg-red-50 text-red-700"
-                  : order.paymentStatus === "submitted"
-                    ? "bg-blue-50 text-blue-700"
-                    : "bg-yellow-50 text-yellow-700"
-            }`}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.push("/dashboard/orders")}
+            className="w-9 h-9 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-colors cursor-pointer"
           >
-            {formatStatus(order.paymentStatus)}
-          </span>
-          <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium ${
-              order.orderStatus === "delivered"
-                ? "bg-green-50 text-green-700"
-                : order.orderStatus === "cancelled"
-                  ? "bg-gray-100 text-[#96958D]"
-                  : "bg-blue-50 text-blue-700"
-            }`}
-          >
-            {formatStatus(order.orderStatus)}
-          </span>
-        </div>
-      </div>
-
-      {/* Status Timeline */}
-      {order.orderStatus !== "cancelled" ? (
-        <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-6 mb-6">
-          <h2 className="text-[13px] font-semibold text-[#171717] mb-4">
-            Order Progress
-          </h2>
-          <div className="flex items-center justify-between">
-            {statusSteps.map((step, i) => {
-              const currentIndex = statusSteps.indexOf(order.orderStatus);
-              const isComplete = i <= currentIndex;
-              const isCurrent = i === currentIndex;
-              return (
-                <div key={step} className="flex flex-col items-center flex-1">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-semibold ${
-                      isComplete
-                        ? "bg-[#171717] text-white"
-                        : "bg-[#F2EFE8] text-[#96958D]"
-                    } ${isCurrent ? "ring-2 ring-[#171717] ring-offset-2" : ""}`}
-                  >
-                    {isComplete ? "✓" : i + 1}
-                  </div>
-                  <p
-                    className={`text-[11px] mt-2 text-center ${
-                      isComplete
-                        ? "text-[#171717] font-medium"
-                        : "text-[#96958D]"
-                    }`}
-                  >
-                    {statusLabels[step]}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="bg-red-50 rounded-xl border border-red-100 p-6 mb-6 text-center">
-          <XCircle size={32} className="text-red-400 mx-auto mb-2" />
-          <p className="text-[15px] font-medium text-red-700">
-            Order Cancelled
-          </p>
-        </div>
-      )}
-
-      {/* Items */}
-      <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-6 mb-6">
-        <h2 className="text-[13px] font-semibold text-[#171717] mb-4">
-          Items
-        </h2>
-        <div className="space-y-3">
-          {order.items.map((item, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between py-2 border-b border-[#E8E6DF]/30 last:border-0"
-            >
-              <div>
-                <span className="text-[13px] text-[#171717]">
-                  {item.name || "Item"}
-                </span>
-                {item.size && (
-                  <span className="text-[12px] text-[#96958D] ml-2">
-                    ({item.size})
-                  </span>
-                )}
-                <span className="text-[12px] text-[#96958D] ml-2">
-                  ×{item.quantity}
-                </span>
-              </div>
-              <span className="text-[13px] font-medium text-[#171717]">
-                ₨{item.total.toLocaleString()}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-between pt-3 mt-2 border-t border-[#E8E6DF]/50">
-          <span className="text-[14px] font-semibold text-[#171717]">
-            Total
-          </span>
-          <span className="text-[16px] font-semibold text-[#171717]">
-            ₨{order.totalAmount.toLocaleString()}
-          </span>
-        </div>
-      </div>
-
-      {/* Bank Details */}
-      {order.bankDetails && order.bankDetails.bankName && (
-        <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-6 mb-6">
-          <h2 className="text-[13px] font-semibold text-[#171717] mb-1">
-            Bank Payment
-          </h2>
-          <p className="text-[12px] text-[#96958D] mb-4">
-            Please transfer the exact order amount to the account below.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-[11px] text-[#96958D] uppercase tracking-wider">
-                Account Title
-              </p>
-              <p className="text-[14px] font-medium text-[#171717]">
-                {order.bankDetails.accountTitle}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] text-[#96958D] uppercase tracking-wider">
-                Bank Name
-              </p>
-              <p className="text-[14px] font-medium text-[#171717]">
-                {order.bankDetails.bankName}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] text-[#96958D] uppercase tracking-wider">
-                Account Number
-              </p>
-              <p className="text-[14px] font-medium text-[#171717] font-mono">
-                {order.bankDetails.accountNumber}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] text-[#96958D] uppercase tracking-wider">
-                IBAN
-              </p>
-              <p className="text-[14px] font-medium text-[#171717] font-mono">
-                {order.bankDetails.iban}
-              </p>
-            </div>
-          </div>
-          <div className="bg-[#FAFAF7] rounded-lg p-4 text-center">
-            <p className="text-[12px] text-[#96958D] mb-1">Amount to Pay</p>
-            <p className="text-[24px] font-bold text-[#171717]">
-              ₨{order.totalAmount.toLocaleString()}
+            <ArrowLeft size={18} strokeWidth={1.5} />
+          </button>
+          <div>
+            <h1 className="text-[20px] font-semibold text-[#171717] tracking-tight">
+              {orderLabel}
+            </h1>
+            <p className="text-[12px] text-[#96958D] mt-0.5">
+              {formatDate(order.createdAt)}
             </p>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium ${statusColors[order.paymentStatus] || ""}`}
+          >
+            Payment: {formatStatus(order.paymentStatus)}
+          </span>
+          <span
+            className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium ${statusColors[order.orderStatus] || ""}`}
+          >
+            Order: {formatStatus(order.orderStatus)}
+          </span>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-6 px-4 py-3 rounded-lg bg-red-50 text-red-600 text-[13px] flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError("")} className="cursor-pointer">
+            X
+          </button>
+        </div>
       )}
 
-      {/* Payment Proof Section */}
-      {order.orderStatus !== "cancelled" && (
-        <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-6 mb-6">
-          <h2 className="text-[13px] font-semibold text-[#171717] mb-4">
-            Payment Screenshot
-          </h2>
+      {/* Main content: two-column on desktop (matching admin layout) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
+        {/* Left column */}
+        <div className="space-y-5">
+          {/* Customer + Items */}
+          <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[13px] mb-5">
+              <div>
+                <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-1">
+                  Customer
+                </p>
+                <p className="text-[#171717] font-medium">
+                  {order.customerName || "\u2013"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-1">
+                  Email
+                </p>
+                <p className="text-[#171717]">
+                  {order.customerEmail || "\u2013"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-1">
+                  Date
+                </p>
+                <p className="text-[#171717]">{formatDate(order.createdAt)}</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-1">
+                  Total
+                </p>
+                <p className="text-[#171717] font-semibold">
+                  \u20A8{order.totalAmount.toLocaleString()}
+                </p>
+              </div>
+            </div>
 
+            {order.notes && (
+              <div className="mb-5">
+                <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-1">
+                  Notes
+                </p>
+                <p className="text-[13px] text-[#171717]">{order.notes}</p>
+              </div>
+            )}
+
+            {/* Items */}
+            {order.items.length > 0 && (
+              <div>
+                <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-2">
+                  Items
+                </p>
+                <div className="border border-[#E8E6DF]/50 rounded-lg overflow-hidden">
+                  {order.items.map((item, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between px-4 py-3 text-[13px] border-b border-[#E8E6DF]/30 last:border-0"
+                    >
+                      <div>
+                        <span className="text-[#171717]">
+                          {item.name || "Item"}
+                        </span>
+                        {item.size && (
+                          <span className="text-[#96958D] ml-2">
+                            ({item.size})
+                          </span>
+                        )}
+                        <span className="text-[#96958D] ml-2">
+                          \u00D7{item.quantity}
+                        </span>
+                      </div>
+                      <span className="text-[#171717] font-medium">
+                        \u20A8{item.total.toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bank Details */}
+          {order.bankDetails?.bankName && (
+            <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
+              <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-2">
+                Bank Payment
+              </p>
+              <p className="text-[12px] text-[#96958D] mb-3">
+                Please transfer the exact order amount to the account below.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
+                <div>
+                  <p className="text-[#96958D]">Account Title</p>
+                  <p className="text-[#171717] font-medium">
+                    {order.bankDetails.accountTitle}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#96958D]">Bank</p>
+                  <p className="text-[#171717]">
+                    {order.bankDetails.bankName}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#96958D]">Account Number</p>
+                  <p className="text-[#171717] font-mono">
+                    {order.bankDetails.accountNumber}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[#96958D]">IBAN</p>
+                  <p className="text-[#171717] font-mono">
+                    {order.bankDetails.iban}
+                  </p>
+                </div>
+              </div>
+              <div className="bg-[#FAFAF7] rounded-lg p-4 text-center mt-4">
+                <p className="text-[12px] text-[#96958D] mb-1">
+                  Amount to Pay
+                </p>
+                <p className="text-[24px] font-bold text-[#171717]">
+                  \u20A8{order.totalAmount.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Payment Proof */}
           {order.paymentProof?.imageUrl && (
-            <div className="mb-4">
-              <p className="text-[11px] text-[#96958D] uppercase tracking-wider mb-2">
-                Submitted Proof
+            <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
+              <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-2">
+                Payment Proof
               </p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={order.paymentProof.imageUrl}
                 alt="Payment proof"
-                className="w-full max-w-[400px] rounded-lg border border-[#E8E6DF]/50"
+                className="w-full max-w-[360px] rounded-lg border border-[#E8E6DF]/50"
               />
               <p className="text-[12px] text-[#96958D] mt-2">
                 Submitted: {formatDateTime(order.paymentProof.submittedAt)}
               </p>
             </div>
           )}
-
-          {(order.paymentStatus === "pending" ||
-            order.paymentStatus === "rejected") && (
-            <div>
-              {order.paymentStatus === "rejected" && (
-                <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 text-red-600 text-[12px]">
-                  Payment proof was rejected. Please upload a valid payment
-                  screenshot.
-                </div>
-              )}
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              {preview ? (
-                <div className="mb-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={preview}
-                    alt="Preview"
-                    className="w-full max-w-[400px] rounded-lg border border-[#E8E6DF]/50"
-                  />
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  className="flex items-center gap-2 h-11 px-4 rounded-lg border border-dashed border-[#E8E6DF] text-[13px] text-[#6F6F69] hover:bg-[#F2EFE8] transition-all cursor-pointer w-full justify-center mb-3"
-                >
-                  <Upload size={16} strokeWidth={1.5} />
-                  Select payment screenshot
-                </button>
-              )}
-              {selectedFile && (
-                <button
-                  onClick={handleUploadProof}
-                  disabled={uploading}
-                  className="flex items-center gap-2 h-11 px-6 rounded-lg bg-[#171717] text-white text-[13px] font-medium hover:bg-[#2a2a2a] disabled:opacity-50 transition-all cursor-pointer"
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />{" "}
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle size={16} /> Submit Payment Proof
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          )}
-
-          {order.paymentStatus === "submitted" && (
-            <div className="px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-[12px]">
-              Payment proof submitted. Waiting for admin verification.
-            </div>
-          )}
-
-          {order.paymentStatus === "verified" && (
-            <div className="px-3 py-2 rounded-lg bg-green-50 text-green-700 text-[12px]">
-              Payment verified. Your order is being processed.
-            </div>
-          )}
         </div>
-      )}
 
-      {/* Cancel Button */}
-      {canCancel && (
-        <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-6">
-          {!cancelConfirm ? (
-            <button
-              onClick={() => setCancelConfirm(true)}
-              className="h-11 px-6 rounded-lg border border-red-200 text-[13px] font-medium text-red-500 hover:bg-red-50 transition-all cursor-pointer"
-            >
-              Cancel Order
-            </button>
-          ) : (
-            <div>
-              <p className="text-[13px] text-[#171717] mb-3">
-                Are you sure you want to cancel this order?
+        {/* Right column */}
+        <div className="space-y-5">
+          {/* Payment Screenshot Upload */}
+          {order.orderStatus !== "cancelled" && (
+            <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
+              <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-3">
+                Payment Screenshot
               </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setCancelConfirm(false)}
-                  className="h-10 px-5 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer"
-                >
-                  Keep Order
-                </button>
-                <button
-                  onClick={handleCancel}
-                  disabled={cancelling}
-                  className="h-10 px-5 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600 disabled:opacity-50 transition-all cursor-pointer"
-                >
-                  {cancelling ? "Cancelling..." : "Cancel Order"}
-                </button>
+
+              {(order.paymentStatus === "pending" ||
+                order.paymentStatus === "rejected") && (
+                <div>
+                  {order.paymentStatus === "rejected" && (
+                    <div className="mb-3 px-3 py-2 rounded-lg bg-red-50 text-red-600 text-[12px]">
+                      Payment proof was rejected. Please upload a valid
+                      payment screenshot.
+                    </div>
+                  )}
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  {preview ? (
+                    <div className="mb-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={preview}
+                        alt="Preview"
+                        className="w-full max-w-[300px] rounded-lg border border-[#E8E6DF]/50"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      className="flex items-center gap-2 h-10 px-4 rounded-lg border border-dashed border-[#E8E6DF] text-[13px] text-[#6F6F69] hover:bg-[#F2EFE8] transition-all cursor-pointer w-full justify-center mb-3"
+                    >
+                      <Upload size={16} strokeWidth={1.5} />
+                      Select screenshot
+                    </button>
+                  )}
+                  {selectedFile && (
+                    <button
+                      onClick={handleUploadProof}
+                      disabled={uploading}
+                      className="flex items-center gap-2 h-10 px-5 rounded-lg bg-[#171717] text-white text-[13px] font-medium hover:bg-[#2a2a2a] disabled:opacity-50 transition-all cursor-pointer w-full justify-center"
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />{" "}
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={16} /> Submit Proof
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {order.paymentStatus === "submitted" && (
+                <div className="px-3 py-2 rounded-lg bg-blue-50 text-blue-700 text-[12px]">
+                  Payment proof submitted. Waiting for admin verification.
+                </div>
+              )}
+
+              {order.paymentStatus === "verified" && (
+                <div className="px-3 py-2 rounded-lg bg-green-50 text-green-700 text-[12px]">
+                  Payment verified. Your order is being processed.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Order Status */}
+          <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
+            <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-3">
+              Order Status
+            </p>
+            <span
+              className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium ${statusColors[order.orderStatus] || ""}`}
+            >
+              {formatStatus(order.orderStatus)}
+            </span>
+          </div>
+
+          {/* Quick Info */}
+          <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
+            <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-3">
+              Order Summary
+            </p>
+            <div className="space-y-2 text-[13px]">
+              <div className="flex justify-between">
+                <span className="text-[#96958D]">Items</span>
+                <span className="text-[#171717]">{order.items.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#96958D]">Total Qty</span>
+                <span className="text-[#171717]">
+                  {order.items.reduce((s, i) => s + i.quantity, 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#96958D]">Amount</span>
+                <span className="text-[#171717] font-semibold">
+                  \u20A8{order.totalAmount.toLocaleString()}
+                </span>
               </div>
             </div>
+          </div>
+
+          {/* Contact */}
+          <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
+            <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-3">
+              Contact
+            </p>
+            <div className="flex gap-3">
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 h-10 px-4 rounded-lg bg-green-600 text-white text-[13px] font-medium hover:bg-green-700 transition-all cursor-pointer flex-1 justify-center"
+              >
+                <MessageCircle size={14} /> WhatsApp
+              </a>
+              <a
+                href={emailUrl}
+                className="flex items-center gap-2 h-10 px-4 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer flex-1 justify-center"
+              >
+                <Mail size={14} /> Email
+              </a>
+            </div>
+          </div>
+
+          {/* Cancel Order */}
+          {canCancel && (
+            <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
+              {!cancelConfirm ? (
+                <button
+                  onClick={() => setCancelConfirm(true)}
+                  className="h-10 px-5 rounded-lg border border-red-200 text-[13px] font-medium text-red-500 hover:bg-red-50 transition-all cursor-pointer w-full"
+                >
+                  Cancel Order
+                </button>
+              ) : (
+                <div>
+                  <p className="text-[13px] text-[#171717] mb-3">
+                    Are you sure you want to cancel this order?
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setCancelConfirm(false)}
+                      className="flex-1 h-10 px-4 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer"
+                    >
+                      Keep Order
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      disabled={cancelling}
+                      className="flex-1 h-10 px-4 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600 disabled:opacity-50 transition-all cursor-pointer"
+                    >
+                      {cancelling ? "Cancelling..." : "Cancel Order"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -59,7 +59,7 @@ export default function AdminLayout({
     <ProtectedRoute requireAdmin>
       <div className="min-h-screen flex bg-[#FAFAF7]">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex flex-col w-[260px] bg-white border-r border-[#E8E6DF]/50 min-h-screen">
+        <aside className="hidden lg:flex flex-col w-[260px] bg-white border-r border-[#E8E6DF]/50 sticky top-0 h-screen">
           {/* Logo */}
           <div className="h-[72px] flex items-center px-6 border-b border-[#E8E6DF]/50">
             <Link

@@ -125,10 +125,45 @@ router.post("/orders", authMiddleware, async (req, res) => {
   }
 });
 
-// GET /api/store/orders/mine — user's own orders (auth required)
+// GET /api/store/orders/mine — user's own orders (auth required, with filtering)
 router.get("/orders/mine", authMiddleware, async (req, res) => {
   try {
-    const orders = await Order.find({ customer: req.user._id })
+    const { orderId, orderStatus, paymentStatus, fromDate, toDate } = req.query;
+
+    // ALWAYS scope to authenticated user — never trust frontend userId
+    const filter = { customer: req.user._id };
+
+    // Order ID search
+    if (orderId && orderId.trim()) {
+      filter.orderNumber = { $regex: orderId.trim(), $options: "i" };
+    }
+
+    // Order status filter
+    if (orderStatus && orderStatus.trim() && orderStatus !== "all") {
+      filter.orderStatus = orderStatus.trim();
+    }
+
+    // Payment status filter
+    if (paymentStatus && paymentStatus.trim() && paymentStatus !== "all") {
+      filter.paymentStatus = paymentStatus.trim();
+    }
+
+    // Date range filter
+    if (fromDate || toDate) {
+      filter.createdAt = {};
+      if (fromDate) {
+        const from = new Date(fromDate);
+        from.setHours(0, 0, 0, 0);
+        filter.createdAt.$gte = from;
+      }
+      if (toDate) {
+        const to = new Date(toDate);
+        to.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = to;
+      }
+    }
+
+    const orders = await Order.find(filter)
       .sort({ createdAt: -1 })
       .lean();
     res.json({
@@ -138,6 +173,7 @@ router.get("/orders/mine", authMiddleware, async (req, res) => {
         items: o.items, totalAmount: o.totalAmount, paymentStatus: o.paymentStatus,
         orderStatus: o.orderStatus, createdAt: o.createdAt,
       })),
+      total: orders.length,
     });
   } catch (error) {
     console.error("Get user orders error:", error.message);
