@@ -8,6 +8,7 @@ import Footer from "./Footer";
 import WhatsAppButton from "./WhatsAppButton";
 import AuthModal from "@/components/auth/AuthModal";
 import AuthInitializer from "@/components/auth/AuthInitializer";
+import CartHydrator from "@/components/auth/CartHydrator";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { setIsPrivateRoute } from "@/lib/store/uiSlice";
 
@@ -56,6 +57,7 @@ export default function LayoutShell({ children }: LayoutShellProps) {
   return (
     <>
       <AuthInitializer />
+      <CartHydrator />
       {showNav && <Navbar />}
       {showNav && <MobileMenu />}
       <AuthModal />

@@ -42,13 +42,11 @@ function saveCart(items: CartItem[]) {
   }
 }
 
-const persistedItems = loadCart();
-const persistedTotals = recalcTotals(persistedItems);
-
+// Always start with empty cart. Hydrate from localStorage on client after mount.
 const initialState: CartState = {
-  items: persistedItems,
-  totalQuantity: persistedItems.length > 0 ? persistedTotals.totalQuantity : 0,
-  totalAmount: persistedItems.length > 0 ? persistedTotals.totalAmount : 0,
+  items: [],
+  totalQuantity: 0,
+  totalAmount: 0,
   _loaded: false,
 };
 
@@ -115,9 +113,18 @@ const cartSlice = createSlice({
     setCartLoaded(state) {
       state._loaded = true;
     },
+    hydrateCart(state) {
+      if (state._loaded) return;
+      const items = loadCart();
+      const totals = recalcTotals(items);
+      state.items = items;
+      state.totalQuantity = items.length > 0 ? totals.totalQuantity : 0;
+      state.totalAmount = items.length > 0 ? totals.totalAmount : 0;
+      state._loaded = true;
+    },
   },
 });
 
-export const { addToCart, removeFromCart, updateQuantity, clearCart, setCartLoaded } =
+export const { addToCart, removeFromCart, updateQuantity, clearCart, setCartLoaded, hydrateCart } =
   cartSlice.actions;
 export default cartSlice.reducer;

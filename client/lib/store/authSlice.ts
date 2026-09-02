@@ -27,7 +27,8 @@ interface AuthState {
 
 const initialState: AuthState = {
   user: null,
-  token: typeof window !== "undefined" ? localStorage.getItem("datatowel_token") : null,
+  // Always start with null token. AuthInitializer hydrates on client after mount.
+  token: null,
   isAuthenticated: false,
   isLoading: false,
   isInitialized: false,
