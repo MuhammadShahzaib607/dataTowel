@@ -83,7 +83,7 @@ const faqs: FAQ[] = [
   {
     question: "How can I get a bulk quotation?",
     answer:
-      "Use our Contact page and submit your requirements through the bulk inquiry form, or contact us directly at +92 340 3004439 or datatowel@gmail.com.",
+      "Use our Contact page and submit your requirements through the bulk inquiry form, or contact us directly at +92 340 3004439 or datatowel.admin@gmail.com.",
     category: "Pricing",
   },
   // DELIVERY
@@ -129,7 +129,7 @@ const faqs: FAQ[] = [
   {
     question: "How do I contact DataTowel?",
     answer:
-      "You can reach us at:\n\nPhone: +92 340 3004439\nEmail: datatowel@gmail.com\nLocation: Karachi, Pakistan",
+      "You can reach us at:\n\nPhone: +92 340 3004439\nEmail: datatowel.admin@gmail.com\nLocation: Karachi, Pakistan",
     category: "Business",
   },
 ];
@@ -467,10 +467,10 @@ export default function FAQsPage() {
             </a>
             <span className="text-[#E8E6DF]">|</span>
             <a
-              href="mailto:datatowel@gmail.com"
+              href="mailto:datatowel.admin@gmail.com"
               className="text-[13px] font-medium text-[#171717] hover:text-[#6F6F69] transition-colors duration-200"
             >
-              datatowel@gmail.com
+              datatowel.admin@gmail.com
             </a>
           </div>
         </div>

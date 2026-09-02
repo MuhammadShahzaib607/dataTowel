@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import Navbar from "./Navbar";
 import MobileMenu from "./MobileMenu";
 import Footer from "./Footer";
+import WhatsAppButton from "./WhatsAppButton";
 import AuthModal from "@/components/auth/AuthModal";
 import AuthInitializer from "@/components/auth/AuthInitializer";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
@@ -46,8 +47,9 @@ export default function LayoutShell({ children }: LayoutShellProps) {
     // Admin routes never show public navbar/footer
     showNav = false;
   } else if (isUserPrivate) {
-    // User private routes: show navbar only after auth is initialized AND user is authenticated
-    showNav = isInitialized && isAuthenticated;
+    // User dashboard routes: the dashboard layout handles its own sidebar
+    // so we hide the public navbar/footer for these routes
+    showNav = false;
   }
 
   return (
@@ -58,6 +60,7 @@ export default function LayoutShell({ children }: LayoutShellProps) {
       <AuthModal />
       {children}
       {showNav && <Footer />}
+      {showNav && <WhatsAppButton />}
     </>
   );
 }

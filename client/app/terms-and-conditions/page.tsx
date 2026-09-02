@@ -84,7 +84,7 @@ Any delivery estimate provided by DataTowel should be treated as an approximate 
 
 For questions about returns or exchanges, please contact us at:
 
-Email: datatowel@gmail.com`,
+Email: datatowel.admin@gmail.com`,
   },
   {
     id: "intellectual-property",
@@ -139,7 +139,7 @@ export default function TermsAndConditionsPage() {
       description="These terms explain the general rules for using the DataTowel website and communicating with us about products, inquiries and bulk orders."
       lastUpdated="August 2026"
       sections={sections}
-      contactEmail="datatowel@gmail.com"
+      contactEmail="datatowel.admin@gmail.com"
       contactPhone="+92 340 3004439"
       contactLocation="Karachi, Pakistan"
     />

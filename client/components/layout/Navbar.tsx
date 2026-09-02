@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Search, User, ShoppingBag, Menu, LogOut, LayoutDashboard, Loader2 } from "lucide-react";
+import UserAvatar from "@/components/ui/UserAvatar";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { toggleMobileMenu } from "@/lib/store/uiSlice";
@@ -159,18 +160,12 @@ export default function Navbar() {
                   className="hidden md:flex w-10 h-10 items-center justify-center transition-colors duration-300 cursor-pointer"
                   style={{ color: navTextColor }}
                 >
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-[#171717] text-white flex items-center justify-center text-[13px] font-medium">
-                    {user?.profileImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={user.profileImage}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span>{(user?.firstName?.[0] || user?.username?.[0] || "U").toUpperCase()}</span>
-                    )}
-                  </div>
+                  <UserAvatar
+                    src={user?.profileImage}
+                    name={user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : undefined}
+                    username={user?.username}
+                    size="sm"
+                  />
                 </button>
 
                 {/* Dropdown */}

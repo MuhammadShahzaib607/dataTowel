@@ -163,6 +163,93 @@ export const toggleOrderStatus = async (req, res) => {
   }
 };
 
+// PATCH /api/orders/:id/verify-payment
+export const verifyPayment = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    if (order.paymentStatus !== "submitted") {
+      return res.status(400).json({ success: false, message: "No payment proof to verify" });
+    }
+    order.paymentStatus = "verified";
+    if (order.orderStatus === "pending_payment") {
+      order.orderStatus = "processing";
+    }
+    order.statusHistory.push({
+      status: "payment_verified",
+      changedAt: new Date(),
+      changedBy: String(req.user._id),
+    });
+    await order.save();
+    res.json({ success: true, order: sanitizeOrder(order) });
+  } catch (error) {
+    console.error("Verify payment error:", error.message);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+// PATCH /api/orders/:id/reject-payment
+export const rejectPayment = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    if (order.paymentStatus !== "submitted") {
+      return res.status(400).json({ success: false, message: "No payment proof to reject" });
+    }
+    order.paymentStatus = "rejected";
+    order.statusHistory.push({
+      status: "payment_rejected",
+      changedAt: new Date(),
+      changedBy: String(req.user._id),
+    });
+    await order.save();
+    res.json({ success: true, order: sanitizeOrder(order) });
+  } catch (error) {
+    console.error("Reject payment error:", error.message);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+// PATCH /api/orders/:id/order-status
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    const { orderStatus } = req.body;
+    const validStatuses = ["pending_payment", "processing", "dispatched", "delivered", "cancelled"];
+    if (!validStatuses.includes(orderStatus)) {
+      return res.status(400).json({ success: false, message: "Invalid order status" });
+    }
+    // Enforce: cannot move to processing/dispatched/delivered without verified payment
+    if (["processing", "dispatched", "delivered"].includes(orderStatus) && order.paymentStatus !== "verified") {
+      return res.status(400).json({ success: false, message: "Payment must be verified before changing to this status" });
+    }
+    // Enforce: cannot cancel after dispatched
+    if (orderStatus === "cancelled" && ["dispatched", "delivered"].includes(order.orderStatus)) {
+      return res.status(400).json({ success: false, message: "Cannot cancel after dispatch" });
+    }
+    order.orderStatus = orderStatus;
+    if (orderStatus === "cancelled") order.isActive = false;
+    else order.isActive = true;
+    order.statusHistory.push({
+      status: orderStatus,
+      changedAt: new Date(),
+      changedBy: String(req.user._id),
+    });
+    await order.save();
+    res.json({ success: true, order: sanitizeOrder(order) });
+  } catch (error) {
+    console.error("Update order status error:", error.message);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
 // GET /api/orders/stats
 export const getOrderStats = async (req, res) => {
   try {

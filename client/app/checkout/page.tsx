@@ -81,6 +81,10 @@ export default function CheckoutPage() {
 
       dispatch(clearCart());
       setOrderPlaced(true);
+      // Store order ID for redirect
+      if (data.order?.id) {
+        sessionStorage.setItem("lastOrderId", data.order.id);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to place order");
     } finally {
@@ -100,12 +104,20 @@ export default function CheckoutPage() {
           <p className="text-[15px] text-[#6F6F69] mb-8">
             Thank you for your order. We&apos;ll process it shortly.
           </p>
-          <button
-            onClick={() => router.push("/products")}
-            className="h-12 px-8 rounded-xl bg-[#171717] text-white text-[14px] font-medium hover:bg-[#2a2a2a] transition-all cursor-pointer"
-          >
-            Continue Shopping
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => router.push("/dashboard/orders")}
+              className="h-12 px-8 rounded-xl bg-[#171717] text-white text-[14px] font-medium hover:bg-[#2a2a2a] transition-all cursor-pointer"
+            >
+              View My Orders
+            </button>
+            <button
+              onClick={() => router.push("/products")}
+              className="h-12 px-8 rounded-xl border border-[#E8E6DF] text-[14px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer"
+            >
+              Continue Shopping
+            </button>
+          </div>
         </div>
       </main>
     );

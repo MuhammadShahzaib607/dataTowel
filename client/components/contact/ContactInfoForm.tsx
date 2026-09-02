@@ -175,7 +175,7 @@ export default function ContactInfoForm() {
 
               {/* Email */}
               <motion.a
-                href="mailto:datatowel@gmail.com"
+                href="mailto:datatowel.admin@gmail.com"
                 initial={{ opacity: 0, y: 12 }}
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: 0.3 }}
@@ -193,7 +193,7 @@ export default function ContactInfoForm() {
                     Email Us
                   </p>
                   <p className="text-[15px] font-medium text-[#171717] mt-0.5 group-hover:text-[#6F6F69] transition-colors duration-300">
-                    datatowel@gmail.com
+                    datatowel.admin@gmail.com
                   </p>
                 </div>
               </motion.a>

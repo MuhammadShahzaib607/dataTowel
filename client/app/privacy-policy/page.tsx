@@ -79,7 +79,7 @@ You can typically control cookies through your browser settings. Disabling certa
     title: "Your Choices",
     content: `You have the right to access, correct or request deletion of your personal information. If you have questions about how your information is used, or if you would like to make a request regarding your data, please contact us at:
 
-Email: datatowel@gmail.com
+Email: datatowel.admin@gmail.com
 Phone: +92 340 3004439`,
   },
   {
@@ -117,7 +117,7 @@ export default function PrivacyPolicyPage() {
       description="Your privacy matters to us. This policy explains what information DataTowel collects, how we use it, and how we protect it when you interact with our website and services."
       lastUpdated="August 2026"
       sections={sections}
-      contactEmail="datatowel@gmail.com"
+      contactEmail="datatowel.admin@gmail.com"
       contactPhone="+92 340 3004439"
       contactLocation="Karachi, Pakistan"
     />

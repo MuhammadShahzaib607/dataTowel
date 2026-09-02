@@ -3,43 +3,42 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingCart, Newspaper, Settings, Menu, X, LogOut } from "lucide-react";
+import {
+  LayoutDashboard,
+  Package,
+  User,
+  Menu,
+  X,
+  LogOut,
+  Home,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { logout } from "@/lib/store/authSlice";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import UserAvatar from "@/components/ui/UserAvatar";
+import WhatsAppButton from "@/components/layout/WhatsAppButton";
 import { siteContent } from "@/lib/data/content";
 
 const sidebarLinks = [
   {
     label: "Dashboard",
-    href: "/admin/dashboard",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    label: "Products",
-    href: "/admin/products",
+    label: "Orders",
+    href: "/dashboard/orders",
     icon: Package,
   },
   {
-    label: "Blogs",
-    href: "/admin/blogs",
-    icon: Newspaper,
-  },
-  {
-    label: "Orders",
-    href: "/admin/orders",
-    icon: ShoppingCart,
-  },
-  {
-    label: "Settings",
-    href: "/admin/settings",
-    icon: Settings,
+    label: "Profile",
+    href: "/profile",
+    icon: User,
   },
 ];
 
-export default function AdminLayout({
+export default function UserDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -56,7 +55,7 @@ export default function AdminLayout({
   };
 
   return (
-    <ProtectedRoute requireAdmin>
+    <ProtectedRoute>
       <div className="min-h-screen flex bg-[#FAFAF7]">
         {/* Desktop Sidebar */}
         <aside className="hidden lg:flex flex-col w-[260px] bg-white border-r border-[#E8E6DF]/50 min-h-screen">
@@ -69,7 +68,7 @@ export default function AdminLayout({
               {siteContent.brand.name}
             </Link>
             <span className="ml-2 text-[10px] font-medium tracking-[0.1em] uppercase text-[#96958D] bg-[#F2EFE8] px-2 py-0.5 rounded">
-              Admin
+              Account
             </span>
           </div>
 
@@ -99,6 +98,17 @@ export default function AdminLayout({
             </ul>
           </nav>
 
+          {/* Back to Store */}
+          <div className="px-4 mb-2">
+            <Link
+              href="/products"
+              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-[13px] font-medium text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-all cursor-pointer"
+            >
+              <Home size={16} strokeWidth={1.5} />
+              Back to Store
+            </Link>
+          </div>
+
           {/* User section */}
           <div className="px-4 py-4 border-t border-[#E8E6DF]/50">
             <div className="flex items-center gap-3 px-4 py-2">
@@ -110,7 +120,9 @@ export default function AdminLayout({
               />
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-medium text-[#171717] truncate">
-                  {user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.username}
+                  {user?.firstName
+                    ? `${user.firstName} ${user.lastName || ""}`.trim()
+                    : user?.username}
                 </p>
                 <p className="text-[11px] text-[#96958D] truncate">
                   {user?.email}
@@ -186,6 +198,16 @@ export default function AdminLayout({
                       );
                     })}
                   </ul>
+                  <div className="mt-4 pt-4 border-t border-[#E8E6DF]/50">
+                    <Link
+                      href="/products"
+                      onClick={() => setSidebarOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-[13px] font-medium text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-all cursor-pointer"
+                    >
+                      <Home size={16} strokeWidth={1.5} />
+                      Back to Store
+                    </Link>
+                  </div>
                 </nav>
 
                 {/* Mobile user section */}
@@ -199,7 +221,9 @@ export default function AdminLayout({
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-[12px] font-medium text-[#171717] truncate">
-                        {user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : user?.username}
+                        {user?.firstName
+                          ? `${user.firstName} ${user.lastName || ""}`.trim()
+                          : user?.username}
                       </p>
                       <p className="text-[11px] text-[#96958D] truncate">
                         {user?.email}
@@ -234,7 +258,7 @@ export default function AdminLayout({
                 {siteContent.brand.name}
               </span>
               <span className="text-[10px] font-medium tracking-[0.1em] uppercase text-[#96958D] bg-[#F2EFE8] px-2 py-0.5 rounded">
-                Admin
+                Account
               </span>
             </div>
           </header>
@@ -245,6 +269,7 @@ export default function AdminLayout({
           </main>
         </div>
       </div>
+      <WhatsAppButton />
     </ProtectedRoute>
   );
 }
