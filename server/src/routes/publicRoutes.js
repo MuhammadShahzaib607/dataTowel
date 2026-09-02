@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Product from "../models/Product.js";
 import Order from "../models/Order.js";
+import Blog from "../models/Blog.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 
 const router = Router();
@@ -138,6 +139,62 @@ router.post("/orders", authMiddleware, async (req, res) => {
   } catch (error) {
     console.error("Create store order error:", error.message);
     res.status(500).json({ success: false, message: "Server error. Please try again." });
+  }
+});
+
+// GET /api/store/blogs — public, active blogs
+router.get("/blogs", async (req, res) => {
+  try {
+    const { category, page = 1, limit = 50 } = req.query;
+    const filter = { isActive: true };
+    if (category) filter.category = category;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const [blogs, total] = await Promise.all([
+      Blog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)).lean(),
+      Blog.countDocuments(filter),
+    ]);
+
+    res.json({
+      success: true,
+      blogs: blogs.map((b) => ({
+        id: b._id,
+        title: b.title,
+        excerpt: b.excerpt,
+        category: b.category,
+        images: b.images,
+        createdAt: b.createdAt,
+      })),
+      total,
+    });
+  } catch (error) {
+    console.error("Get public blogs error:", error.message);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+});
+
+// GET /api/store/blogs/:id — public, single active blog
+router.get("/blogs/:id", async (req, res) => {
+  try {
+    const blog = await Blog.findById(req.params.id).lean();
+    if (!blog || !blog.isActive) {
+      return res.status(404).json({ success: false, message: "Blog not found" });
+    }
+    res.json({
+      success: true,
+      blog: {
+        id: blog._id,
+        title: blog.title,
+        excerpt: blog.excerpt,
+        content: blog.content,
+        category: blog.category,
+        images: blog.images,
+        createdAt: blog.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error("Get public blog error:", error.message);
+    res.status(500).json({ success: false, message: "Server error." });
   }
 });
 

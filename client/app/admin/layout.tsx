@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingCart, Menu, X, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Newspaper, Menu, X, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { logout } from "@/lib/store/authSlice";
@@ -20,6 +20,11 @@ const sidebarLinks = [
     label: "Products",
     href: "/admin/products",
     icon: Package,
+  },
+  {
+    label: "Blogs",
+    href: "/admin/blogs",
+    icon: Newspaper,
   },
   {
     label: "Orders",
