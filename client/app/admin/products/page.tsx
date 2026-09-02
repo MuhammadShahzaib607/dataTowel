@@ -10,6 +10,7 @@ import {
   X,
   ImagePlus,
   Package,
+  Pencil,
 } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 
@@ -337,6 +338,15 @@ export default function AdminProductsPage() {
                           </svg>
                         </button>
                         <button
+                          onClick={() =>
+                            router.push(`/admin/products/${product.id}/edit`)
+                          }
+                          className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-colors cursor-pointer"
+                          title="Edit product"
+                        >
+                          <Pencil size={15} strokeWidth={1.5} />
+                        </button>
+                        <button
                           onClick={() => setDeleteConfirm(product.id)}
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-red-50 hover:text-red-500 transition-colors cursor-pointer"
                         >
@@ -442,6 +452,15 @@ export default function AdminProductsPage() {
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                         <circle cx="12" cy="12" r="3" />
                       </svg>
+                    </button>
+                    <button
+                      onClick={() =>
+                        router.push(`/admin/products/${product.id}/edit`)
+                      }
+                      className="w-9 h-9 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-[#F2EFE8] cursor-pointer"
+                      title="Edit product"
+                    >
+                      <Pencil size={15} strokeWidth={1.5} />
                     </button>
                     <button
                       onClick={() => setDeleteConfirm(product.id)}

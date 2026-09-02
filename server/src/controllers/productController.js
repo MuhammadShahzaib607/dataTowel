@@ -142,7 +142,7 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ success: false, message: "Product not found" });
     }
 
-    const { name, description, category, subCategory, sizes, price, discountedPrice, isActive } = req.body;
+    const { name, description, category, subCategory, sizes, price, discountedPrice, isActive, removeImages } = req.body;
 
     // Validate prices if both are provided
     if (price !== undefined && price !== null && price !== "") {
@@ -171,6 +171,55 @@ export const updateProduct = async (req, res) => {
     if (price !== undefined) product.price = price !== null && price !== "" ? Number(price) : null;
     if (discountedPrice !== undefined) product.discountedPrice = discountedPrice !== null && discountedPrice !== "" ? Number(discountedPrice) : null;
     if (isActive !== undefined) product.isActive = Boolean(isActive);
+
+    // Handle image removal
+    if (removeImages) {
+      let idsToRemove = [];
+      try {
+        const raw = typeof removeImages === "string" ? JSON.parse(removeImages) : removeImages;
+        idsToRemove = Array.isArray(raw) ? raw : [];
+      } catch {
+        idsToRemove = [];
+      }
+
+      if (idsToRemove.length > 0) {
+        for (const publicId of idsToRemove) {
+          try {
+            await cloudinary.uploader.destroy(publicId);
+          } catch (err) {
+            console.error("Cloudinary delete failed for", publicId, err.message);
+          }
+        }
+        product.images = product.images.filter((img) => !idsToRemove.includes(img.publicId));
+      }
+    }
+
+    // Handle new image uploads
+    if (req.files && req.files.length > 0) {
+      const uploadResults = await Promise.all(
+        req.files.map((file) =>
+          new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              {
+                folder: "datatowel/products",
+                resource_type: "image",
+                transformation: [
+                  { width: 800, height: 800, crop: "limit" },
+                ],
+                format: "webp",
+                quality: "auto",
+              },
+              (error, result) => {
+                if (error) return reject(error);
+                resolve({ url: result.secure_url, publicId: result.public_id });
+              }
+            );
+            stream.end(file.buffer);
+          })
+        )
+      );
+      product.images.push(...uploadResults);
+    }
 
     await product.save();
     res.json({ success: true, product: sanitizeProduct(product) });

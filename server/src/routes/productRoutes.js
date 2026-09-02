@@ -20,7 +20,7 @@ router.use(adminAuthMiddleware);
 router.post("/", upload.array("images", 10), createProduct);
 router.get("/", getProducts);
 router.get("/:id", getProduct);
-router.put("/:id", updateProduct);
+router.put("/:id", upload.array("images", 10), updateProduct);
 router.delete("/:id", deleteProduct);
 router.patch("/:id/status", toggleProductStatus);
 router.post("/:id/images", upload.array("images", 10), uploadProductImages);
