@@ -45,7 +45,11 @@ interface Order {
   customerName: string;
   customerEmail: string;
   items: OrderItem[];
+  subtotal: number;
+  deliveryCharge: number;
   totalAmount: number;
+  city: string;
+  paymentMethod: string;
   notes: string;
   paymentStatus: string;
   paymentProof: PaymentProof | null;
@@ -522,7 +526,7 @@ export default function OrderDetailPage() {
             </span>
           </div>
 
-          {/* Quick Info */}
+          {/* Order Summary with breakdown */}
           <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
             <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-3">
               Order Summary
@@ -538,8 +542,22 @@ export default function OrderDetailPage() {
                   {order.items.reduce((s, i) => s + i.quantity, 0)}
                 </span>
               </div>
+              <div className="h-px bg-[#E8E6DF]/50 my-2" />
               <div className="flex justify-between">
-                <span className="text-[#96958D]">Amount</span>
+                <span className="text-[#96958D]">Subtotal</span>
+                <span className="text-[#171717]">
+                  \u20A8{(order.subtotal || order.totalAmount).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#96958D]">Delivery</span>
+                <span className="text-[#171717]">
+                  \u20A8{(order.deliveryCharge || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="h-px bg-[#E8E6DF]/50 my-2" />
+              <div className="flex justify-between">
+                <span className="text-[#96958D] font-medium">Total</span>
                 <span className="text-[#171717] font-semibold">
                   \u20A8{order.totalAmount.toLocaleString()}
                 </span>

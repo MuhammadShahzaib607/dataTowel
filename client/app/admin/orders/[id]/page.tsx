@@ -38,7 +38,11 @@ interface Order {
   customerName: string;
   customerEmail: string;
   items: OrderItem[];
+  subtotal: number;
+  deliveryCharge: number;
   totalAmount: number;
+  city: string;
+  paymentMethod: string;
   notes: string;
   paymentStatus: string;
   paymentProof: PaymentProof | null;
@@ -265,6 +269,18 @@ export default function AdminOrderDetailPage() {
                 <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-1">Total</p>
                 <p className="text-[#171717] font-semibold">\u20A8{order.totalAmount.toLocaleString()}</p>
               </div>
+              {order.city && (
+                <div>
+                  <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-1">City</p>
+                  <p className="text-[#171717]">{order.city}</p>
+                </div>
+              )}
+              {order.paymentMethod && (
+                <div>
+                  <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-1">Payment</p>
+                  <p className="text-[#171717]">{order.paymentMethod === "manual_transfer" ? "Manual Bank Transfer" : "Cash on Delivery"}</p>
+                </div>
+              )}
             </div>
 
             {order.notes && (
@@ -371,9 +387,9 @@ export default function AdminOrderDetailPage() {
             </div>
           </div>
 
-          {/* Quick Info */}
+          {/* Order Summary with breakdown */}
           <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
-            <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-3">Quick Info</p>
+            <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-3">Order Summary</p>
             <div className="space-y-2 text-[13px]">
               <div className="flex justify-between">
                 <span className="text-[#96958D]">Items</span>
@@ -383,8 +399,18 @@ export default function AdminOrderDetailPage() {
                 <span className="text-[#96958D]">Total Qty</span>
                 <span className="text-[#171717]">{order.items.reduce((s, i) => s + i.quantity, 0)}</span>
               </div>
+              <div className="h-px bg-[#E8E6DF]/50 my-2" />
               <div className="flex justify-between">
-                <span className="text-[#96958D]">Amount</span>
+                <span className="text-[#96958D]">Subtotal</span>
+                <span className="text-[#171717]">\u20A8{(order.subtotal || order.totalAmount).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-[#96958D]">Delivery</span>
+                <span className="text-[#171717]">\u20A8{(order.deliveryCharge || 0).toLocaleString()}</span>
+              </div>
+              <div className="h-px bg-[#E8E6DF]/50 my-2" />
+              <div className="flex justify-between">
+                <span className="text-[#96958D] font-medium">Total</span>
                 <span className="text-[#171717] font-semibold">\u20A8{order.totalAmount.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">

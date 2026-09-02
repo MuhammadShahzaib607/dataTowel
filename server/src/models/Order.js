@@ -57,9 +57,26 @@ const orderSchema = new mongoose.Schema(
     customerName: { type: String, default: "" },
     customerEmail: { type: String, default: "" },
     items: [orderItemSchema],
+    subtotal: {
+      type: Number,
+      default: 0,
+    },
+    deliveryCharge: {
+      type: Number,
+      default: 0,
+    },
     totalAmount: {
       type: Number,
       default: 0,
+    },
+    city: {
+      type: String,
+      default: "",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["manual_transfer", "cod"],
+      default: "manual_transfer",
     },
     notes: {
       type: String,

@@ -113,19 +113,22 @@ export default function ProfileForm() {
   const displayImage = previewUrl || user.profileImage || null;
   const initials = (user.firstName?.[0] || user.username?.[0] || "U").toUpperCase();
 
+  const inputClasses =
+    "w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] focus:border-transparent transition-all";
+
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-8">
+    <div className="max-w-[720px] mx-auto">
+      {/* Header - centered */}
+      <div className="text-center mb-8">
         <h1 className="text-[24px] font-semibold text-[#171717] tracking-tight">
           Profile
         </h1>
-        <p className="mt-1 text-[14px] text-[#6F6F69]">
+        {/* <p className="mt-1 text-[14px] text-[#6F6F69]">
           Manage your account information
-        </p>
+        </p> */}
       </div>
 
-      {/* Profile Image Section */}
+      {/* Profile Image Section - centered */}
       <div className="flex flex-col items-center mb-10">
         <div className="relative group">
           <div className="w-24 h-24 rounded-full overflow-hidden bg-[#F2EFE8] flex items-center justify-center border-2 border-[#E8E6DF]">
@@ -182,11 +185,8 @@ export default function ProfileForm() {
         </motion.div>
       )}
 
-      {/* Form */}
-      <form
-        onSubmit={handleSave}
-        className="space-y-5 max-w-[640px]"
-      >
+      {/* Form - centered */}
+      <form onSubmit={handleSave} className="space-y-5">
         {/* Username (read-only) */}
         <div>
           <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
@@ -213,34 +213,34 @@ export default function ProfileForm() {
           />
         </div>
 
-        {/* First Name */}
-        <div>
-          <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-            First Name
-          </label>
-          <input
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            placeholder="Enter first name"
-            maxLength={50}
-            className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] focus:border-transparent transition-all"
-          />
-        </div>
-
-        {/* Last Name */}
-        <div>
-          <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-            Last Name
-          </label>
-          <input
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            placeholder="Enter last name"
-            maxLength={50}
-            className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] focus:border-transparent transition-all"
-          />
+        {/* First Name + Last Name */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
+              First Name
+            </label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="Enter first name"
+              maxLength={50}
+              className={inputClasses}
+            />
+          </div>
+          <div>
+            <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
+              Last Name
+            </label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Enter last name"
+              maxLength={50}
+              className={inputClasses}
+            />
+          </div>
         </div>
 
         {/* Phone */}
@@ -254,58 +254,60 @@ export default function ProfileForm() {
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Enter phone number"
             maxLength={30}
-            className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] focus:border-transparent transition-all"
+            className={inputClasses}
           />
         </div>
 
-        {/* City */}
-        <div>
-          <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-            City
-          </label>
-          <input
-            type="text"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="Enter city"
-            maxLength={100}
-            className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] focus:border-transparent transition-all"
-          />
-        </div>
-
-        {/* Country */}
-        <div>
-          <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-            Country
-          </label>
-          <input
-            type="text"
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            placeholder="Enter country"
-            maxLength={100}
-            className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] focus:border-transparent transition-all"
-          />
+        {/* City + Country */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
+              City
+            </label>
+            <input
+              type="text"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Enter city"
+              maxLength={100}
+              className={inputClasses}
+            />
+          </div>
+          <div>
+            <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
+              Country
+            </label>
+            <input
+              type="text"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              placeholder="Enter country"
+              maxLength={100}
+              className={inputClasses}
+            />
+          </div>
         </div>
 
         {/* Save Button */}
-        <button
-          type="submit"
-          disabled={isSaving || isUploading}
-          className="mt-4 w-full h-12 rounded-lg bg-[#171717] text-white text-[14px] font-medium tracking-wide hover:bg-[#2a2a2a] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer"
-        >
-          {isSaving ? (
-            <>
-              <Loader2 size={18} className="animate-spin" />
-              <span>Saving...</span>
-            </>
-          ) : (
-            <>
-              <Save size={18} strokeWidth={1.5} />
-              <span>Save Changes</span>
-            </>
-          )}
-        </button>
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={isSaving || isUploading}
+            className="w-full h-12 rounded-lg bg-[#171717] text-white text-[14px] font-medium tracking-wide hover:bg-[#2a2a2a] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Save size={18} strokeWidth={1.5} />
+                <span>Save Changes</span>
+              </>
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );

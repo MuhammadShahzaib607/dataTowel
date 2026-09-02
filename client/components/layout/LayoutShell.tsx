@@ -15,7 +15,8 @@ import { setIsPrivateRoute } from "@/lib/store/uiSlice";
 const ADMIN_PREFIXES = ["/admin"];
 
 // User private routes — show navbar/footer only when authenticated
-const USER_PRIVATE_PREFIXES = ["/profile", "/dashboard"];
+// /profile is NOT included because it should show the public navbar + footer
+const USER_PRIVATE_PREFIXES = ["/dashboard"];
 
 function matchesPrefix(pathname: string, prefixes: string[]): boolean {
   return prefixes.some(

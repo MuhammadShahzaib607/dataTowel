@@ -6,8 +6,38 @@ import BankDetails from "../models/BankDetails.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import upload from "../middleware/upload.js";
 import cloudinary from "../config/cloudinary.js";
+import { calculateDeliveryCharge, getPublicDeliverySettings } from "../controllers/deliverySettingsController.js";
 
 const router = Router();
+
+// ─── PUBLIC SETTINGS ──────────────────────────────────────
+
+// GET /api/store/settings/delivery — public delivery charges for checkout
+router.get("/settings/delivery", async (req, res) => {
+  try {
+    const settings = await getPublicDeliverySettings();
+    res.json({ success: true, deliverySettings: settings });
+  } catch (error) {
+    console.error("Get public delivery settings error:", error.message);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+});
+
+// GET /api/store/settings/bank-details — public bank details for checkout
+router.get("/settings/bank-details", async (req, res) => {
+  try {
+    const bankDoc = await BankDetails.findOne().lean();
+    res.json({
+      success: true,
+      bankDetails: bankDoc
+        ? { accountTitle: bankDoc.accountTitle, bankName: bankDoc.bankName, accountNumber: bankDoc.accountNumber, iban: bankDoc.iban }
+        : null,
+    });
+  } catch (error) {
+    console.error("Get public bank details error:", error.message);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+});
 
 // ─── PRODUCTS ──────────────────────────────────────────────
 
@@ -70,7 +100,11 @@ async function generateOrderNumber() {
 // POST /api/store/orders — create order (auth required)
 router.post("/orders", authMiddleware, async (req, res) => {
   try {
-    const { items, customerName, customerEmail, notes } = req.body;
+    const { items, customerName, customerEmail, notes, city, paymentMethod } = req.body;
+
+    // Validate payment method
+    const allowedMethods = ["manual_transfer"];
+    const selectedMethod = allowedMethods.includes(paymentMethod) ? paymentMethod : "manual_transfer";
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: "No items in order" });
@@ -94,7 +128,11 @@ router.post("/orders", authMiddleware, async (req, res) => {
       });
     }
 
-    const totalAmount = orderItems.reduce((sum, item) => sum + item.total, 0);
+    const subtotal = orderItems.reduce((sum, item) => sum + item.total, 0);
+
+    // Calculate delivery charge server-side
+    const deliveryCharge = await calculateDeliveryCharge(city || "");
+    const totalAmount = subtotal + deliveryCharge;
 
     // Snapshot current bank details
     const bankDoc = await BankDetails.findOne().lean();
@@ -110,7 +148,11 @@ router.post("/orders", authMiddleware, async (req, res) => {
       customerName: customerName || `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim() || req.user.username || "",
       customerEmail: customerEmail || req.user.email || "",
       items: orderItems,
+      subtotal,
+      deliveryCharge,
       totalAmount,
+      city: (city || "").trim(),
+      paymentMethod: selectedMethod,
       notes: notes || "",
       bankDetails: bankSnapshot,
       paymentStatus: "pending",
@@ -170,7 +212,8 @@ router.get("/orders/mine", authMiddleware, async (req, res) => {
       success: true,
       orders: orders.map((o) => ({
         id: o._id, orderNumber: o.orderNumber, customerName: o.customerName,
-        items: o.items, totalAmount: o.totalAmount, paymentStatus: o.paymentStatus,
+        items: o.items, subtotal: o.subtotal, deliveryCharge: o.deliveryCharge,
+        totalAmount: o.totalAmount, paymentStatus: o.paymentStatus,
         orderStatus: o.orderStatus, createdAt: o.createdAt,
       })),
       total: orders.length,
@@ -335,7 +378,9 @@ function sanitizeOrder(order) {
   return {
     id: order._id, orderNumber: order.orderNumber, customer: order.customer,
     customerName: order.customerName, customerEmail: order.customerEmail,
-    items: order.items, totalAmount: order.totalAmount, notes: order.notes,
+    items: order.items, subtotal: order.subtotal, deliveryCharge: order.deliveryCharge,
+    totalAmount: order.totalAmount, city: order.city, paymentMethod: order.paymentMethod,
+    notes: order.notes,
     paymentStatus: order.paymentStatus, paymentProof: order.paymentProof,
     bankDetails: order.bankDetails, orderStatus: order.orderStatus,
     statusHistory: order.statusHistory, isActive: order.isActive,

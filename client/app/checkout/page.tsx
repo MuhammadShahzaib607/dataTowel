@@ -1,14 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { clearCart } from "@/lib/store/cartSlice";
 import { openAuthModal } from "@/lib/store/uiSlice";
-import { ArrowLeft, Loader2, ImagePlus, CheckCircle } from "lucide-react";
+import { ArrowLeft, Loader2, ImagePlus, CheckCircle, Info } from "lucide-react";
+import CityDropdown from "@/components/ui/CityDropdown";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
+
+interface BankDetails {
+  accountTitle: string;
+  bankName: string;
+  accountNumber: string;
+  iban: string;
+}
+
+interface DeliverySettings {
+  karachiCharge: number;
+  outsideKarachiCharge: number;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -27,9 +40,48 @@ export default function CheckoutPage() {
     address: "",
     notes: "",
   });
+  const [paymentMethod, setPaymentMethod] = useState<"manual_transfer" | "cod">("manual_transfer");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [orderPlaced, setOrderPlaced] = useState(false);
+
+  // Delivery & bank data
+  const [bankDetails, setBankDetails] = useState<BankDetails | null>(null);
+  const [deliverySettings, setDeliverySettings] = useState<DeliverySettings | null>(null);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+
+  // Fetch delivery settings + bank details for checkout
+  const fetchSettings = useCallback(async () => {
+    try {
+      setLoadingSettings(true);
+      const [deliveryRes, bankRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/store/settings/delivery`),
+        fetch(`${API_BASE_URL}/store/settings/bank-details`),
+      ]);
+      const deliveryData = await deliveryRes.json();
+      const bankData = await bankRes.json();
+      if (deliveryData.success) setDeliverySettings(deliveryData.deliverySettings);
+      if (bankData.success) setBankDetails(bankData.bankDetails);
+    } catch {
+      // Use defaults
+    } finally {
+      setLoadingSettings(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  // Calculate delivery charge
+  const deliveryCharge = (() => {
+    const normalizedCity = (formData.city || "").trim().toLowerCase();
+    if (!deliverySettings) return 0;
+    return normalizedCity === "karachi" ? deliverySettings.karachiCharge : deliverySettings.outsideKarachiCharge;
+  })();
+
+  const subtotal = totalAmount;
+  const finalTotal = subtotal + deliveryCharge;
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -47,6 +99,11 @@ export default function CheckoutPage() {
 
     if (items.length === 0) {
       setError("Your cart is empty.");
+      return;
+    }
+
+    if (!formData.city.trim()) {
+      setError("Please enter your city for delivery calculation.");
       return;
     }
 
@@ -72,6 +129,8 @@ export default function CheckoutPage() {
           items: orderItems,
           customerName: formData.customerName,
           customerEmail: formData.customerEmail,
+          city: formData.city,
+          paymentMethod,
           notes: formData.notes,
         }),
       });
@@ -81,7 +140,6 @@ export default function CheckoutPage() {
 
       dispatch(clearCart());
       setOrderPlaced(true);
-      // Store order ID for redirect
       if (data.order?.id) {
         sessionStorage.setItem("lastOrderId", data.order.id);
       }
@@ -101,9 +159,14 @@ export default function CheckoutPage() {
           <h1 className="text-[28px] font-semibold text-[#171717] tracking-tight mb-2">
             Order Placed!
           </h1>
-          <p className="text-[15px] text-[#6F6F69] mb-8">
+          <p className="text-[15px] text-[#6F6F69] mb-4">
             Thank you for your order. We&apos;ll process it shortly.
           </p>
+          {paymentMethod === "manual_transfer" && (
+            <p className="text-[13px] text-[#6F6F69] mb-8">
+              Please complete the bank transfer and upload your payment screenshot from the order details page.
+            </p>
+          )}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => router.push("/dashboard/orders")}
@@ -221,14 +284,12 @@ export default function CheckoutPage() {
                     </div>
                     <div>
                       <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-                        City
+                        City *
                       </label>
-                      <input
-                        type="text"
-                        name="city"
+                      <CityDropdown
                         value={formData.city}
-                        onChange={handleInputChange}
-                        className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
+                        onChange={(city) => setFormData((prev) => ({ ...prev, city }))}
+                        required
                       />
                     </div>
                   </div>
@@ -261,6 +322,117 @@ export default function CheckoutPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Payment Method */}
+              <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-6">
+                <h2 className="text-[15px] font-semibold text-[#171717] mb-5">
+                  Payment Method
+                </h2>
+
+                <div className="space-y-3">
+                  {/* Manual Bank Transfer */}
+                  <label
+                    className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      paymentMethod === "manual_transfer"
+                        ? "border-[#171717] bg-[#FAFAF7]"
+                        : "border-[#E8E6DF] hover:border-[#D8CBB8]"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="manual_transfer"
+                      checked={paymentMethod === "manual_transfer"}
+                      onChange={() => setPaymentMethod("manual_transfer")}
+                      className="mt-0.5 accent-[#171717]"
+                    />
+                    <div>
+                      <p className="text-[14px] font-medium text-[#171717]">
+                        Manual Bank Transfer
+                      </p>
+                      <p className="text-[12px] text-[#6F6F69] mt-0.5">
+                        Pay the full order amount to the bank account below.
+                      </p>
+                    </div>
+                  </label>
+
+                  {/* Cash on Delivery - Disabled */}
+                  <div className="relative">
+                    <div className="flex items-start gap-3 p-4 rounded-xl border-2 border-[#E8E6DF] opacity-50 cursor-not-allowed">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        disabled
+                        className="mt-0.5"
+                      />
+                      <div>
+                        <p className="text-[14px] font-medium text-[#171717]">
+                          Cash on Delivery
+                        </p>
+                        <p className="text-[12px] text-[#96958D] mt-0.5">
+                          Currently unavailable. Please use Manual Bank Transfer.
+                        </p>
+                      </div>
+                    </div>
+                    {/* Tooltip */}
+                    <div className="hidden group-hover:block absolute left-0 right-0 -top-2 -translate-y-full z-10">
+                      <div className="bg-[#171717] text-white text-[12px] px-3 py-2 rounded-lg text-center shadow-lg">
+                        Cash on Delivery is currently unavailable. Please use Manual Bank Transfer.
+                      </div>
+                    </div>
+                    {/* Mobile: show unavailable message */}
+                    <div className="sm:hidden mt-2 px-3 py-2 rounded-lg bg-[#FAFAF7] border border-[#E8E6DF]">
+                      <div className="flex items-center gap-1.5">
+                        <Info size={12} className="text-[#96958D]" />
+                        <p className="text-[11px] text-[#96958D]">
+                          Cash on Delivery is currently unavailable. Please use Manual Bank Transfer.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bank Details (shown when Manual Transfer selected) */}
+                {paymentMethod === "manual_transfer" && (
+                  <div className="mt-5 p-4 rounded-xl bg-[#FAFAF7] border border-[#E8E6DF]/50">
+                    {bankDetails ? (
+                      <>
+                        <p className="text-[12px] font-medium text-[#6F6F69] uppercase tracking-wider mb-3">
+                          Bank Account Details
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[13px]">
+                          <div>
+                            <p className="text-[#96958D]">Account Title</p>
+                            <p className="text-[#171717] font-medium">{bankDetails.accountTitle}</p>
+                          </div>
+                          <div>
+                            <p className="text-[#96958D]">Bank Name</p>
+                            <p className="text-[#171717]">{bankDetails.bankName}</p>
+                          </div>
+                          <div>
+                            <p className="text-[#96958D]">Account Number</p>
+                            <p className="text-[#171717] font-mono">{bankDetails.accountNumber}</p>
+                          </div>
+                          <div>
+                            <p className="text-[#96958D]">IBAN</p>
+                            <p className="text-[#171717] font-mono">{bankDetails.iban}</p>
+                          </div>
+                        </div>
+                        <p className="text-[12px] text-[#6F6F69] mt-4 leading-relaxed">
+                          Please transfer the full order amount including delivery charges to the bank account above and keep your payment receipt or screenshot. You can attach the payment screenshot to this order after placing it.
+                        </p>
+                      </>
+                    ) : (
+                      <div className="text-center py-4">
+                        <Info size={20} className="text-[#96958D] mx-auto mb-2" />
+                        <p className="text-[13px] text-[#6F6F69]">
+                          Bank transfer details are currently unavailable. Please contact support before placing your order.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -310,16 +482,25 @@ export default function CheckoutPage() {
 
                 <div className="h-px bg-[#E8E6DF]/50 mb-5" />
 
+                {/* Price Breakdown */}
                 <div className="space-y-3 mb-5">
                   <div className="flex justify-between text-[13px]">
                     <span className="text-[#6F6F69]">Subtotal</span>
                     <span className="font-medium text-[#171717]">
-                      ₨{totalAmount.toLocaleString()}
+                      ₨{subtotal.toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between text-[13px]">
-                    <span className="text-[#6F6F69]">Shipping</span>
-                    <span className="text-[#96958D]">Calculated separately</span>
+                    <span className="text-[#6F6F69]">Delivery</span>
+                    {loadingSettings ? (
+                      <span className="text-[#96958D]">Loading...</span>
+                    ) : deliverySettings ? (
+                      <span className="font-medium text-[#171717]">
+                        ₨{deliveryCharge.toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-[#96958D]">TBD</span>
+                    )}
                   </div>
                 </div>
 
@@ -330,7 +511,7 @@ export default function CheckoutPage() {
                     Total
                   </span>
                   <span className="text-[18px] font-semibold text-[#171717]">
-                    ₨{totalAmount.toLocaleString()}
+                    ₨{finalTotal.toLocaleString()}
                   </span>
                 </div>
 
