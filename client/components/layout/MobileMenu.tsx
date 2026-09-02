@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, LogOut, User, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
@@ -12,6 +13,38 @@ export default function MobileMenu() {
   const dispatch = useAppDispatch();
   const isOpen = useAppSelector((state) => state.ui.mobileMenuOpen);
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isOpen) {
+      const scrollY = window.scrollY;
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = "100%";
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || "0") * -1);
+      }
+    }
+
+    // Cleanup on unmount: always restore scroll
+    return () => {
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.width = "";
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || "0") * -1);
+      }
+    };
+  }, [isOpen]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -42,7 +75,7 @@ export default function MobileMenu() {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed top-0 right-0 bottom-0 w-[80vw] max-w-sm bg-white z-50 shadow-2xl"
+            className="fixed top-0 right-0 bottom-0 w-[80vw] max-w-sm bg-white z-50 shadow-2xl overflow-y-auto"
           >
             <div className="flex flex-col h-full">
               {/* Header */}
@@ -60,7 +93,7 @@ export default function MobileMenu() {
               </div>
 
               {/* Links */}
-              <nav className="flex-1 px-8 py-8">
+              <nav className="flex-1 px-8 py-8 overflow-y-auto">
                 <ul>
                   {navigationLinks.map((link, i) => (
                     <motion.li
