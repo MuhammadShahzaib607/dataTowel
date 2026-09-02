@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
@@ -26,10 +26,13 @@ export default function CustomDropdown({
 
   const selectedLabel = options.find((o) => o.value === value)?.label || "";
 
-  const close = useCallback(() => {
-    setIsOpen(false);
-    setHighlightedIndex(-1);
-  }, []);
+  // Force-close dropdown whenever disabled becomes true
+  useEffect(() => {
+    if (disabled) {
+      setIsOpen(false);
+      setHighlightedIndex(-1);
+    }
+  }, [disabled]);
 
   // Close on outside click
   useEffect(() => {
@@ -39,14 +42,32 @@ export default function CustomDropdown({
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
       ) {
-        close();
+        setIsOpen(false);
+        setHighlightedIndex(-1);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [isOpen, close]);
+  }, [isOpen]);
 
-  // Keyboard navigation
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (highlightedIndex >= 0 && listRef.current) {
+      const item = listRef.current.children[highlightedIndex] as HTMLElement;
+      if (item) item.scrollIntoView({ block: "nearest" });
+    }
+  }, [highlightedIndex]);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
+
+  const handleToggle = () => {
+    if (disabled) return;
+    setIsOpen((prev) => !prev);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (disabled) return;
 
@@ -56,9 +77,9 @@ export default function CustomDropdown({
         e.preventDefault();
         if (isOpen && highlightedIndex >= 0 && highlightedIndex < options.length) {
           onChange(options[highlightedIndex].value);
-          close();
+          handleClose();
         } else {
-          setIsOpen(!isOpen);
+          setIsOpen((prev) => !prev);
         }
         break;
       case "ArrowDown":
@@ -80,29 +101,25 @@ export default function CustomDropdown({
         }
         break;
       case "Escape":
-        close();
+        handleClose();
         break;
     }
   };
-
-  // Scroll highlighted item into view
-  useEffect(() => {
-    if (highlightedIndex >= 0 && listRef.current) {
-      const item = listRef.current.children[highlightedIndex] as HTMLElement;
-      if (item) item.scrollIntoView({ block: "nearest" });
-    }
-  }, [highlightedIndex]);
 
   return (
     <div ref={containerRef} className="relative">
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         onKeyDown={handleKeyDown}
-        className={`w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-left flex items-center justify-between transition-all cursor-pointer ${
+        className={`w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-left flex items-center justify-between transition-colors duration-150 ${
+          disabled
+            ? "opacity-50 cursor-not-allowed"
+            : "cursor-pointer"
+        } ${
           isOpen ? "ring-2 ring-[#D8CBB8]" : ""
-        } ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${
+        } ${
           selectedLabel ? "text-[#171717]" : "text-[#96958D]"
         }`}
       >
@@ -116,7 +133,7 @@ export default function CustomDropdown({
       </button>
 
       <AnimatePresence>
-        {isOpen && (
+        {isOpen && !disabled && (
           <motion.div
             ref={listRef}
             initial={{ opacity: 0, y: -4 }}
@@ -136,7 +153,7 @@ export default function CustomDropdown({
                   type="button"
                   onClick={() => {
                     onChange(option.value);
-                    close();
+                    handleClose();
                   }}
                   onMouseEnter={() => setHighlightedIndex(index)}
                   className={`w-full px-4 py-2.5 text-left text-[13px] cursor-pointer transition-colors ${

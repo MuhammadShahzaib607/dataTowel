@@ -196,7 +196,11 @@ export default function AddProductPage() {
                       }))}
                       placeholder="Select category"
                       onChange={(val) =>
-                        setForm({ ...form, category: val, subCategory: "" })
+                        setForm((prev) => ({
+                          ...prev,
+                          category: val,
+                          subCategory: "",
+                        }))
                       }
                     />
                   </div>
@@ -213,7 +217,7 @@ export default function AddProductPage() {
                           : "Select category first"
                       }
                       onChange={(val) =>
-                        setForm({ ...form, subCategory: val })
+                        setForm((prev) => ({ ...prev, subCategory: val }))
                       }
                       disabled={!form.category}
                     />
