@@ -7,6 +7,7 @@ import userRoutes from "./routes/userRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
+import bankDetailsRoutes from "./routes/bankDetailsRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import dns from 'node:dns';
 dns.setServers(['8.8.8.8', '1.1.1.1']);
@@ -35,6 +36,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/blogs", blogRoutes);
+app.use("/api/admin/settings", bankDetailsRoutes);
 app.use("/api/store", publicRoutes);
 
 // Health check
