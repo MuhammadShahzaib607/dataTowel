@@ -76,6 +76,7 @@ export default function AdminDashboardPage() {
   };
 
   const fetchStats = useCallback(async () => {
+    if (!token) return;
     try {
       const [productsRes, ordersRes] = await Promise.all([
         fetch(`${API_BASE_URL}/products`, { headers: authHeaders }),
@@ -102,6 +103,7 @@ export default function AdminDashboardPage() {
   }, [token]);
 
   const fetchFilteredOrders = useCallback(async (search: string, oStatus: string, pStatus: string) => {
+    if (!token) return;
     try {
       const params = new URLSearchParams();
       if (search.trim()) params.set("search", search.trim());

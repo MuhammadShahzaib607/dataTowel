@@ -89,6 +89,7 @@ export default function UserOrdersPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchOrders = useCallback(async (f: Filters) => {
+    if (!token) return;
     try {
       setLoading(true);
       setError("");

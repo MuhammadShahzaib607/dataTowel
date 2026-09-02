@@ -53,6 +53,7 @@ export default function AdminSettingsPage() {
 
   // Fetch bank details
   const fetchBankDetails = useCallback(async () => {
+    if (!token) return;
     try {
       setBankLoading(true);
       const res = await fetch(`${API_BASE_URL}/admin/settings/bank-details`, {
@@ -81,6 +82,7 @@ export default function AdminSettingsPage() {
 
   // Fetch delivery settings
   const fetchDeliverySettings = useCallback(async () => {
+    if (!token) return;
     try {
       setDeliveryLoading(true);
       const res = await fetch(`${API_BASE_URL}/admin/settings/delivery`, {

@@ -125,11 +125,11 @@ export default function ProfileForm() {
         </h1>
         {/* <p className="mt-1 text-[14px] text-[#6F6F69]">
           Manage your account information
-        </p> */}
+        </p> */}  
       </div>
 
       {/* Profile Image Section - centered */}
-      <div className="flex flex-col items-center mb-10">
+      <div className="flex flex-col items-center mb-10">  
         <div className="relative group">
           <div className="w-24 h-24 rounded-full overflow-hidden bg-[#F2EFE8] flex items-center justify-center border-2 border-[#E8E6DF]">
             {displayImage ? (

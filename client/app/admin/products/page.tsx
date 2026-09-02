@@ -51,6 +51,7 @@ export default function AdminProductsPage() {
   };
 
   const fetchProducts = useCallback(async () => {
+    if (!token) return;
     try {
       setLoading(true);
       setError("");

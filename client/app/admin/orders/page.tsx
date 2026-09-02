@@ -136,6 +136,7 @@ export default function AdminOrdersPage() {
   }, []);
 
   const fetchOrders = useCallback(async (f: Filters) => {
+    if (!token) return;
     try {
       setLoading(true);
       setError("");

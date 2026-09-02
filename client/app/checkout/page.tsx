@@ -110,6 +110,12 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setError("");
 
+    if (!token) {
+      setError("Please sign in to place an order.");
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const orderItems = items.map((item) => ({
         productId: item.id,

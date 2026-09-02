@@ -107,6 +107,7 @@ export default function OrderDetailPage() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const fetchOrder = useCallback(async () => {
+    if (!token) return;
     try {
       setLoading(true);
       const res = await fetch(`${API_BASE_URL}/store/orders/${params.id}`, {
@@ -142,7 +143,7 @@ export default function OrderDetailPage() {
   };
 
   const handleUploadProof = async () => {
-    if (!selectedFile || !order) return;
+    if (!selectedFile || !order || !token) return;
     setUploading(true);
     setError("");
     try {
@@ -170,7 +171,7 @@ export default function OrderDetailPage() {
   };
 
   const handleCancel = async () => {
-    if (!order) return;
+    if (!order || !token) return;
     setCancelling(true);
     try {
       const res = await fetch(

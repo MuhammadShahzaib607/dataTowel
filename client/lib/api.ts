@@ -24,10 +24,21 @@ export async function apiRequest<T = unknown>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await res.json();
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    if (!res.ok) {
+      throw new Error(`Request failed (${res.status}). Please try again.`);
+    }
+    throw new Error("Unexpected response from server.");
+  }
 
   if (!res.ok) {
-    throw new Error(data.message || "Something went wrong");
+    const msg = (data && typeof data === "object" && "message" in data)
+      ? (data as { message: string }).message
+      : "Something went wrong";
+    throw new Error(msg);
   }
 
   return data as T;
@@ -52,7 +63,12 @@ export async function apiRequestRaw<T = unknown>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await res.json();
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    data = { message: `Request failed (${res.status})` };
+  }
 
-  return { ...data, _status: res.status } as T & { _status: number };
+  return { ...(data as object), _status: res.status } as T & { _status: number };
 }

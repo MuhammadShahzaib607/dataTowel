@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, ArrowLeft } from "lucide-react";
@@ -36,6 +36,7 @@ export default function AuthModal() {
   const [validationError, setValidationError] = useState("");
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const googleLoginInProgress = useRef(false);
 
   const isLogin = authModalMode === "login";
   const isSignup = authModalMode === "signup";
@@ -92,6 +93,8 @@ export default function AuthModal() {
     setValidationError("");
     setResendCooldown(0);
     setIsGoogleLoading(false);
+    // Reset the single-flight guard so future Google clicks work
+    googleLoginInProgress.current = false;
     dispatch(clearAuthError());
     dispatch(setPendingVerificationEmail(null));
   }, [dispatch, isForcedModal]);
@@ -221,34 +224,89 @@ export default function AuthModal() {
   };
 
   const handleGoogleSignIn = async () => {
+    // Single-flight guard: prevent multiple simultaneous Google login operations
+    if (googleLoginInProgress.current) {
+      console.warn("[Google Auth] Blocked duplicate request (ref guard)");
+      return;
+    }
+    googleLoginInProgress.current = true;
+
+    console.log("[Google Auth] Button clicked");
     setValidationError("");
     dispatch(clearAuthError());
     setIsGoogleLoading(true);
 
     try {
-      const result = await signInWithPopup(getFirebaseAuth(), googleProvider);
-      const firebaseUser = result.user;
-      const idToken = await firebaseUser.getIdToken();
-
-      const response = await dispatch(googleLoginUser({ idToken }));
-      if (googleLoginUser.fulfilled.match(response)) {
-        handleClose();
-      }
-    } catch (err: unknown) {
-      if (err && typeof err === "object" && "code" in err) {
-        const firebaseError = err as { code: string };
-        if (firebaseError.code === "auth/popup-closed-by-user") {
+      // Step 1: Firebase popup authentication
+      console.log("[Google Auth] Firebase popup started");
+      let result;
+      try {
+        result = await signInWithPopup(getFirebaseAuth(), googleProvider);
+      } catch (firebaseErr: unknown) {
+        // Handle Firebase-specific errors immediately
+        const code =
+          firebaseErr && typeof firebaseErr === "object" && "code" in firebaseErr
+            ? (firebaseErr as { code: string }).code
+            : null;
+        console.error("[Google Auth] Firebase error:", code || firebaseErr);
+        if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
           setValidationError("Google sign-in was cancelled.");
-        } else if (firebaseError.code === "auth/cancelled-popup-request") {
-          setValidationError("Google sign-in was cancelled.");
+        } else if (code === "auth/popup-blocked") {
+          setValidationError(
+            "Your browser blocked the Google sign-in popup. Please allow popups for this site and try again."
+          );
+        } else if (code === "auth/network-request-failed") {
+          setValidationError(
+            "Unable to connect to Google. Please check your connection and try again."
+          );
+        } else if (code === "auth/account-exists-with-different-credential") {
+          setValidationError(
+            "An account already exists with this email using another sign-in method."
+          );
+        } else if (code === "auth/invalid-credential") {
+          setValidationError("Invalid Google credentials. Please try again.");
         } else {
           setValidationError("Unable to sign in with Google. Please try again.");
         }
-      } else {
-        setValidationError("Unable to sign in with Google. Please try again.");
+        return; // Exit early — don't fall through to the generic catch
       }
+
+      const firebaseUser = result.user;
+      console.log("[Google Auth] Firebase authentication successful, UID:", firebaseUser.uid);
+
+      // Step 2: Get Firebase ID token
+      const idToken = await firebaseUser.getIdToken();
+      if (!idToken) {
+        console.error("[Google Auth] Failed to obtain ID token");
+        setValidationError("Failed to obtain authentication token. Please try again.");
+        return;
+      }
+      console.log("[Google Auth] ID token obtained (length:", idToken.length, ")");
+
+      // Step 3: Send ID token to backend for verification + JWT generation
+      console.log("[Google Auth] Backend request started");
+      const response = await dispatch(googleLoginUser({ idToken }));
+
+      if (googleLoginUser.fulfilled.match(response)) {
+        console.log("[Google Auth] Backend response received, JWT stored");
+        console.log("[Google Auth] Auth state updated, navigating");
+        handleClose();
+      } else {
+        // Redux rejected — backend returned an error
+        const errMsg =
+          typeof response.payload === "string"
+            ? response.payload
+            : "Google sign-in failed";
+        console.error("[Google Auth] Backend error:", errMsg);
+        setValidationError(errMsg);
+      }
+    } catch (err: unknown) {
+      // Generic catch for unexpected errors (should rarely reach here)
+      console.error("[Google Auth] Unexpected error:", err);
+      setValidationError("An unexpected error occurred. Please try again.");
     } finally {
       setIsGoogleLoading(false);
+      googleLoginInProgress.current = false;
     }
   };
 

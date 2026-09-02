@@ -42,18 +42,23 @@ function DashboardContent() {
   const { token } = useAppSelector((state) => state.auth);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
 
   const fetchOrders = useCallback(async () => {
+    if (!token) return;
     try {
+      setFetchError("");
       const res = await fetch(`${API_BASE_URL}/store/orders/mine`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       if (res.ok) {
         setOrders(data.orders || []);
+      } else {
+        setFetchError(data.message || "Failed to load orders");
       }
     } catch {
-      // ignore
+      setFetchError("Unable to connect. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -207,6 +212,16 @@ function DashboardContent() {
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="w-5 h-5 border-2 border-[#D8CBB8] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : fetchError ? (
+          <div className="py-12 text-center">
+            <p className="text-[13px] text-red-500 mb-3">{fetchError}</p>
+            <button
+              onClick={() => fetchOrders()}
+              className="h-10 px-5 rounded-lg bg-[#171717] text-white text-[13px] font-medium hover:bg-[#2a2a2a] transition-all cursor-pointer"
+            >
+              Retry
+            </button>
           </div>
         ) : recentOrders.length === 0 ? (
           <div className="py-16 text-center">

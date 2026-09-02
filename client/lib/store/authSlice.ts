@@ -48,6 +48,7 @@ interface AuthResponse {
 interface MeResponse {
   success: boolean;
   user: AuthUser;
+  token?: string;
 }
 
 interface ProfileResponse {
@@ -151,22 +152,27 @@ export const googleLoginUser = createAsyncThunk<
   { rejectValue: string }
 >("auth/googleLogin", async ({ idToken }, { rejectWithValue }) => {
   try {
+    console.log("[Google Auth] Sending ID token to backend...");
     const data = await apiRequest<AuthResponse>("/auth/google", {
       method: "POST",
       body: { idToken },
     });
+    console.log("[Google Auth] Backend response success:", data.success);
     if (data.token) {
       localStorage.setItem("datatowel_token", data.token);
+      console.log("[Google Auth] JWT stored in localStorage");
     }
     return data;
   } catch (err) {
-    return rejectWithValue(err instanceof Error ? err.message : "Google sign-in failed");
+    const message = err instanceof Error ? err.message : "Google sign-in failed";
+    console.error("[Google Auth] Backend request failed:", message);
+    return rejectWithValue(message);
   }
 });
 
 // Restore user from token
 export const restoreUser = createAsyncThunk<
-  MeResponse,
+  MeResponse & { token: string },
   void,
   { rejectValue: string }
 >("auth/restoreUser", async (_, { rejectWithValue }) => {
@@ -175,7 +181,7 @@ export const restoreUser = createAsyncThunk<
     if (!token) return rejectWithValue("No token found");
 
     const data = await apiRequest<MeResponse>("/auth/me", { token });
-    return data;
+    return { ...data, token };
   } catch {
     localStorage.removeItem("datatowel_token");
     return rejectWithValue("Session expired");
@@ -369,6 +375,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isInitialized = true;
         state.user = action.payload.user;
+        state.token = action.payload.token;
         state.isAuthenticated = true;
       })
       .addCase(restoreUser.rejected, (state) => {
