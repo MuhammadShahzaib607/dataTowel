@@ -17,7 +17,7 @@ const router = Router();
 // All product management routes require admin auth
 router.use(adminAuthMiddleware);
 
-router.post("/", createProduct);
+router.post("/", upload.array("images", 10), createProduct);
 router.get("/", getProducts);
 router.get("/:id", getProduct);
 router.put("/:id", updateProduct);

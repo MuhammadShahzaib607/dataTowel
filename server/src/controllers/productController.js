@@ -19,10 +19,21 @@ function sanitizeProduct(product) {
   };
 }
 
-// POST /api/products
+// POST /api/products — accepts multipart/form-data with optional image files
 export const createProduct = async (req, res) => {
   try {
     const { name, description, category, subCategory, sizes, price, discountedPrice, isActive } = req.body;
+
+    // Parse sizes — may arrive as JSON string (FormData) or array (JSON body)
+    let parsedSizes = [];
+    if (sizes) {
+      try {
+        const raw = typeof sizes === "string" ? JSON.parse(sizes) : sizes;
+        parsedSizes = Array.isArray(raw) ? raw.map((s) => String(s).trim()).filter(Boolean) : [];
+      } catch {
+        parsedSizes = [];
+      }
+    }
 
     // Validate prices if provided
     if (price !== undefined && price !== null && price !== "") {
@@ -46,11 +57,39 @@ export const createProduct = async (req, res) => {
       description: description ? String(description).trim() : "",
       category: category ? String(category).trim() : "",
       subCategory: subCategory ? String(subCategory).trim() : "",
-      sizes: Array.isArray(sizes) ? sizes.map((s) => String(s).trim()).filter(Boolean) : [],
+      sizes: parsedSizes,
       price: price !== undefined && price !== null && price !== "" ? Number(price) : null,
       discountedPrice: discountedPrice !== undefined && discountedPrice !== null && discountedPrice !== "" ? Number(discountedPrice) : null,
-      isActive: isActive !== undefined ? Boolean(isActive) : true,
+      isActive: isActive !== undefined ? (isActive === "true" || isActive === true) : true,
+      images: [],
     };
+
+    // Upload images to Cloudinary via memory buffers (no disk writes)
+    if (req.files && req.files.length > 0) {
+      const uploadResults = await Promise.all(
+        req.files.map((file) =>
+          new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              {
+                folder: "datatowel/products",
+                resource_type: "image",
+                transformation: [
+                  { width: 800, height: 800, crop: "limit" },
+                ],
+                format: "webp",
+                quality: "auto",
+              },
+              (error, result) => {
+                if (error) return reject(error);
+                resolve({ url: result.secure_url, publicId: result.public_id });
+              }
+            );
+            stream.end(file.buffer);
+          })
+        )
+      );
+      productData.images = uploadResults;
+    }
 
     const product = await Product.create(productData);
     res.status(201).json({ success: true, product: sanitizeProduct(product) });

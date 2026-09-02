@@ -1,17 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   Loader2,
   Trash2,
-  Edit3,
   X,
   ImagePlus,
-  Save,
-  ToggleLeft,
-  ToggleRight,
   Package,
 } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
@@ -19,7 +16,6 @@ import { useAppSelector } from "@/lib/hooks";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
 
-// Types
 interface ProductImage {
   url: string;
   publicId: string;
@@ -37,47 +33,16 @@ interface Product {
   images: ProductImage[];
   isActive: boolean;
   createdAt: string;
+  updatedAt: string;
 }
-
-interface ProductForm {
-  name: string;
-  description: string;
-  category: string;
-  subCategory: string;
-  sizes: string[];
-  price: string;
-  discountedPrice: string;
-  isActive: boolean;
-}
-
-const CATEGORIES = ["Towels", "Bedsheets", "Cleaning & Utility Towels"];
-
-const emptyForm: ProductForm = {
-  name: "",
-  description: "",
-  category: "",
-  subCategory: "",
-  sizes: [],
-  price: "",
-  discountedPrice: "",
-  isActive: true,
-};
 
 export default function AdminProductsPage() {
+  const router = useRouter();
   const { token } = useAppSelector((state) => state.auth);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<ProductForm>(emptyForm);
-  const [sizeInput, setSizeInput] = useState("");
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [submitting, setSubmitting] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [uploadingImages, setUploadingImages] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const authHeaders: Record<string, string> = {
     "Content-Type": "application/json",
@@ -105,109 +70,6 @@ export default function AdminProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Cleanup previews
-  useEffect(() => {
-    return () => previews.forEach((p) => URL.revokeObjectURL(p));
-  }, [previews]);
-
-  const resetForm = () => {
-    setForm(emptyForm);
-    setEditingId(null);
-    setSelectedFiles([]);
-    previews.forEach((p) => URL.revokeObjectURL(p));
-    setPreviews([]);
-    setSizeInput("");
-    setShowForm(false);
-  };
-
-  const startEdit = (product: Product) => {
-    setForm({
-      name: product.name,
-      description: product.description,
-      category: product.category,
-      subCategory: product.subCategory,
-      sizes: [...product.sizes],
-      price: product.price !== null ? String(product.price) : "",
-      discountedPrice: product.discountedPrice !== null ? String(product.discountedPrice) : "",
-      isActive: product.isActive,
-    });
-    setEditingId(product.id);
-    setShowForm(true);
-    setSelectedFiles([]);
-    setPreviews([]);
-  };
-
-  const addSize = () => {
-    const trimmed = sizeInput.trim();
-    if (trimmed && !form.sizes.includes(trimmed)) {
-      setForm({ ...form, sizes: [...form.sizes, trimmed] });
-      setSizeInput("");
-    }
-  };
-
-  const removeSize = (size: string) => {
-    setForm({ ...form, sizes: form.sizes.filter((s) => s !== size) });
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setSelectedFiles(files);
-    previews.forEach((p) => URL.revokeObjectURL(p));
-    setPreviews(files.map((f) => URL.createObjectURL(f)));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError("");
-
-    try {
-      const body = {
-        ...form,
-        price: form.price ? Number(form.price) : null,
-        discountedPrice: form.discountedPrice ? Number(form.discountedPrice) : null,
-      };
-
-      const url = editingId
-        ? `${API_BASE_URL}/products/${editingId}`
-        : `${API_BASE_URL}/products`;
-      const method = editingId ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: authHeaders,
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-
-      const productId = editingId || data.product.id;
-
-      // Upload images if any selected
-      if (selectedFiles.length > 0 && productId) {
-        const formData = new FormData();
-        selectedFiles.forEach((f) => formData.append("images", f));
-
-        const imgRes = await fetch(`${API_BASE_URL}/products/${productId}/images`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-          body: formData,
-        });
-        if (!imgRes.ok) {
-          const imgData = await imgRes.json();
-          throw new Error(imgData.message || "Failed to upload images");
-        }
-      }
-
-      resetForm();
-      fetchProducts();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save product");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   const handleDelete = async (id: string) => {
     try {
       const res = await fetch(`${API_BASE_URL}/products/${id}`, {
@@ -233,21 +95,9 @@ export default function AdminProductsPage() {
       if (!res.ok) throw new Error(data.message);
       fetchProducts();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status");
-    }
-  };
-
-  const handleDeleteImage = async (productId: string, publicId: string) => {
-    try {
-      const res = await fetch(
-        `${API_BASE_URL}/products/${productId}/images/${encodeURIComponent(publicId)}`,
-        { method: "DELETE", headers: authHeaders }
+      setError(
+        err instanceof Error ? err.message : "Failed to update status"
       );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      fetchProducts();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete image");
     }
   };
 
@@ -264,10 +114,7 @@ export default function AdminProductsPage() {
           </p>
         </div>
         <button
-          onClick={() => {
-            resetForm();
-            setShowForm(true);
-          }}
+          onClick={() => router.push("/admin/products/new")}
           className="flex items-center gap-2 h-10 px-5 rounded-lg bg-[#171717] text-white text-[13px] font-medium hover:bg-[#2a2a2a] transition-all cursor-pointer"
         >
           <Plus size={16} strokeWidth={1.5} />
@@ -284,290 +131,6 @@ export default function AdminProductsPage() {
           </button>
         </div>
       )}
-
-      {/* Product Form Modal */}
-      <AnimatePresence>
-        {showForm && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
-              onClick={resetForm}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-20 overflow-y-auto"
-              onClick={(e) => e.target === e.currentTarget && resetForm()}
-            >
-              <div
-                className="w-full max-w-[560px] bg-white rounded-2xl shadow-2xl mb-10"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Form header */}
-                <div className="flex items-center justify-between px-8 pt-8 pb-4">
-                  <h2 className="text-[20px] font-semibold text-[#171717]">
-                    {editingId ? "Edit Product" : "Add Product"}
-                  </h2>
-                  <button
-                    onClick={resetForm}
-                    className="w-8 h-8 flex items-center justify-center text-[#6F6F69] hover:text-[#171717] cursor-pointer"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-5">
-                  {/* Name */}
-                  <div>
-                    <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-                      Product Name
-                    </label>
-                    <input
-                      type="text"
-                      value={form.name}
-                      onChange={(e) =>
-                        setForm({ ...form, name: e.target.value })
-                      }
-                      placeholder="e.g. Premium Bath Towel"
-                      className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
-                    />
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-                      Description
-                    </label>
-                    <textarea
-                      value={form.description}
-                      onChange={(e) =>
-                        setForm({ ...form, description: e.target.value })
-                      }
-                      rows={3}
-                      placeholder="Product description..."
-                      className="w-full px-4 py-3 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all resize-none"
-                    />
-                  </div>
-
-                  {/* Category & Subcategory */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-                        Category
-                      </label>
-                      <select
-                        value={form.category}
-                        onChange={(e) =>
-                          setForm({ ...form, category: e.target.value })
-                        }
-                        className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all cursor-pointer"
-                      >
-                        <option value="">Select category</option>
-                        {CATEGORIES.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-                        Subcategory
-                      </label>
-                      <input
-                        type="text"
-                        value={form.subCategory}
-                        onChange={(e) =>
-                          setForm({ ...form, subCategory: e.target.value })
-                        }
-                        placeholder="e.g. Bath Towels"
-                        className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Sizes */}
-                  <div>
-                    <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-                      Sizes
-                    </label>
-                    <div className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        value={sizeInput}
-                        onChange={(e) => setSizeInput(e.target.value)}
-                        onKeyDown={(e) =>
-                          e.key === "Enter" && (e.preventDefault(), addSize())
-                        }
-                        placeholder="Type a size and press Enter"
-                        className="flex-1 h-10 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={addSize}
-                        className="h-10 px-4 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#F2EFE8] transition-all cursor-pointer"
-                      >
-                        + Add
-                      </button>
-                    </div>
-                    {form.sizes.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {form.sizes.map((size) => (
-                          <span
-                            key={size}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#F2EFE8] text-[12px] font-medium text-[#171717]"
-                          >
-                            {size}
-                            <button
-                              type="button"
-                              onClick={() => removeSize(size)}
-                              className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-[#E8E6DF] cursor-pointer"
-                            >
-                              <X size={10} />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Prices */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-                        Price
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={form.price}
-                        onChange={(e) =>
-                          setForm({ ...form, price: e.target.value })
-                        }
-                        placeholder="0.00"
-                        className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-                        Discounted Price
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={form.discountedPrice}
-                        onChange={(e) =>
-                          setForm({
-                            ...form,
-                            discountedPrice: e.target.value,
-                          })
-                        }
-                        placeholder="0.00"
-                        className="w-full h-11 px-4 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[14px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Images */}
-                  <div>
-                    <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5 uppercase tracking-wider">
-                      Images
-                    </label>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      multiple
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-2 h-11 px-4 rounded-lg border border-dashed border-[#E8E6DF] text-[13px] text-[#6F6F69] hover:bg-[#F2EFE8] hover:border-[#D8CBB8] transition-all cursor-pointer w-full justify-center"
-                    >
-                      <ImagePlus size={16} strokeWidth={1.5} />
-                      {selectedFiles.length > 0
-                        ? `${selectedFiles.length} file(s) selected`
-                        : "Select images"}
-                    </button>
-                    {previews.length > 0 && (
-                      <div className="flex gap-2 mt-3">
-                        {previews.map((p, i) => (
-                          <div
-                            key={i}
-                            className="w-16 h-16 rounded-lg overflow-hidden bg-[#F2EFE8] flex-shrink-0"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={p}
-                              alt={`Preview ${i + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Active toggle */}
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm({ ...form, isActive: !form.isActive })
-                      }
-                      className="cursor-pointer"
-                    >
-                      {form.isActive ? (
-                        <ToggleRight
-                          size={32}
-                          className="text-[#171717]"
-                          strokeWidth={1.5}
-                        />
-                      ) : (
-                        <ToggleLeft
-                          size={32}
-                          className="text-[#96958D]"
-                          strokeWidth={1.5}
-                        />
-                      )}
-                    </button>
-                    <span className="text-[13px] text-[#6F6F69]">
-                      {form.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </div>
-
-                  {/* Submit */}
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full h-12 rounded-lg bg-[#171717] text-white text-[14px] font-medium hover:bg-[#2a2a2a] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save size={18} strokeWidth={1.5} />
-                        {editingId ? "Update Product" : "Add Product"}
-                      </>
-                    )}
-                  </button>
-                </form>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
@@ -629,10 +192,7 @@ export default function AdminProductsPage() {
             Add your first product to get started.
           </p>
           <button
-            onClick={() => {
-              resetForm();
-              setShowForm(true);
-            }}
+            onClick={() => router.push("/admin/products/new")}
             className="inline-flex items-center gap-2 h-10 px-5 rounded-lg bg-[#171717] text-white text-[13px] font-medium hover:bg-[#2a2a2a] transition-all cursor-pointer"
           >
             <Plus size={16} strokeWidth={1.5} />
@@ -667,7 +227,10 @@ export default function AdminProductsPage() {
                 {products.map((product) => (
                   <tr
                     key={product.id}
-                    className="border-b border-[#E8E6DF]/30 last:border-0 hover:bg-[#FAFAF7] transition-colors"
+                    className="border-b border-[#E8E6DF]/30 last:border-0 hover:bg-[#FAFAF7] transition-colors cursor-pointer"
+                    onClick={() =>
+                      router.push(`/admin/products/${product.id}`)
+                    }
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
@@ -711,7 +274,9 @@ export default function AdminProductsPage() {
                         {product.discountedPrice !== null ? (
                           <>
                             <span className="line-through text-[#96958D]">
-                              {product.price !== null ? `₨${product.price}` : "—"}
+                              {product.price !== null
+                                ? `₨${product.price}`
+                                : "—"}
                             </span>
                             <span className="ml-2 text-[#171717] font-medium">
                               ₨{product.discountedPrice}
@@ -719,14 +284,19 @@ export default function AdminProductsPage() {
                           </>
                         ) : (
                           <span className="text-[#171717]">
-                            {product.price !== null ? `₨${product.price}` : "—"}
+                            {product.price !== null
+                              ? `₨${product.price}`
+                              : "—"}
                           </span>
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <button
-                        onClick={() => handleToggleStatus(product.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleStatus(product.id);
+                        }}
                         className="cursor-pointer"
                       >
                         {product.isActive ? (
@@ -741,12 +311,30 @@ export default function AdminProductsPage() {
                       </button>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-1">
+                      <div
+                        className="flex items-center justify-end gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <button
-                          onClick={() => startEdit(product)}
+                          onClick={() =>
+                            router.push(`/admin/products/${product.id}`)
+                          }
                           className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-colors cursor-pointer"
+                          title="View details"
                         >
-                          <Edit3 size={15} strokeWidth={1.5} />
+                          <svg
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(product.id)}
@@ -767,7 +355,10 @@ export default function AdminProductsPage() {
             {products.map((product) => (
               <div
                 key={product.id}
-                className="bg-white rounded-xl border border-[#E8E6DF]/50 p-4"
+                className="bg-white rounded-xl border border-[#E8E6DF]/50 p-4 cursor-pointer"
+                onClick={() =>
+                  router.push(`/admin/products/${product.id}`)
+                }
               >
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-14 h-14 rounded-lg overflow-hidden bg-[#F2EFE8] flex-shrink-0">
@@ -780,10 +371,7 @@ export default function AdminProductsPage() {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <ImagePlus
-                          size={16}
-                          className="text-[#D8CBB8]"
-                        />
+                        <ImagePlus size={16} className="text-[#D8CBB8]" />
                       </div>
                     )}
                   </div>
@@ -796,13 +384,20 @@ export default function AdminProductsPage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleToggleStatus(product.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleStatus(product.id);
+                    }}
                     className="cursor-pointer flex-shrink-0"
                   >
                     {product.isActive ? (
-                      <ToggleRight size={28} className="text-[#171717]" />
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-green-50 text-green-700 text-[10px] font-medium">
+                        Active
+                      </span>
                     ) : (
-                      <ToggleLeft size={28} className="text-[#96958D]" />
+                      <span className="inline-flex items-center px-2 py-1 rounded-full bg-gray-100 text-[#96958D] text-[10px] font-medium">
+                        Inactive
+                      </span>
                     )}
                   </button>
                 </div>
@@ -823,12 +418,30 @@ export default function AdminProductsPage() {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div
+                    className="flex items-center gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
-                      onClick={() => startEdit(product)}
+                      onClick={() =>
+                        router.push(`/admin/products/${product.id}`)
+                      }
                       className="w-9 h-9 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-[#F2EFE8] cursor-pointer"
+                      title="View details"
                     >
-                      <Edit3 size={15} strokeWidth={1.5} />
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
                     </button>
                     <button
                       onClick={() => setDeleteConfirm(product.id)}
