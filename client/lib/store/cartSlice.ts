@@ -13,19 +13,49 @@ interface CartState {
   items: CartItem[];
   totalQuantity: number;
   totalAmount: number;
+  _loaded: boolean;
 }
 
+function recalcTotals(items: CartItem[]) {
+  return {
+    totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
+    totalAmount: items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+  };
+}
+
+function loadCart(): CartItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem("datatowel_cart");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCart(items: CartItem[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("datatowel_cart", JSON.stringify(items));
+  } catch {
+    // ignore
+  }
+}
+
+const persistedItems = loadCart();
+const persistedTotals = recalcTotals(persistedItems);
+
 const initialState: CartState = {
-  items: [],
-  totalQuantity: 0,
-  totalAmount: 0,
+  items: persistedItems,
+  totalQuantity: persistedItems.length > 0 ? persistedTotals.totalQuantity : 0,
+  totalAmount: persistedItems.length > 0 ? persistedTotals.totalAmount : 0,
+  _loaded: false,
 };
 
 const cartSlice = createSlice({
   name: "cart",
   initialState,
-  reducers: {
-    addToCart(state, action: PayloadAction<CartItem>) {
+  reducers: {    addToCart(state, action: PayloadAction<CartItem>) {
       const existing = state.items.find(
         (item) =>
           item.id === action.payload.id && item.variant === action.payload.variant
@@ -35,11 +65,10 @@ const cartSlice = createSlice({
       } else {
         state.items.push(action.payload);
       }
-      state.totalQuantity = state.items.reduce((sum, item) => sum + item.quantity, 0);
-      state.totalAmount = state.items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      );
+      const totals = recalcTotals(state.items);
+      state.totalQuantity = totals.totalQuantity;
+      state.totalAmount = totals.totalAmount;
+      saveCart(state.items);
     },
     removeFromCart(
       state,
@@ -52,11 +81,10 @@ const cartSlice = createSlice({
             item.variant === action.payload.variant
           )
       );
-      state.totalQuantity = state.items.reduce((sum, item) => sum + item.quantity, 0);
-      state.totalAmount = state.items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      );
+      const totals = recalcTotals(state.items);
+      state.totalQuantity = totals.totalQuantity;
+      state.totalAmount = totals.totalAmount;
+      saveCart(state.items);
     },
     updateQuantity(
       state,
@@ -68,26 +96,28 @@ const cartSlice = createSlice({
     ) {
       const item = state.items.find(
         (item) =>
-          item.id === action.payload.id &&
-          item.variant === action.payload.variant
+          item.id === action.payload.id && item.variant === action.payload.variant
       );
       if (item) {
-        item.quantity = action.payload.quantity;
+        item.quantity = Math.max(1, action.payload.quantity);
       }
-      state.totalQuantity = state.items.reduce((sum, item) => sum + item.quantity, 0);
-      state.totalAmount = state.items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      );
+      const totals = recalcTotals(state.items);
+      state.totalQuantity = totals.totalQuantity;
+      state.totalAmount = totals.totalAmount;
+      saveCart(state.items);
     },
     clearCart(state) {
       state.items = [];
       state.totalQuantity = 0;
       state.totalAmount = 0;
+      saveCart([]);
+    },
+    setCartLoaded(state) {
+      state._loaded = true;
     },
   },
 });
 
-export const { addToCart, removeFromCart, updateQuantity, clearCart } =
+export const { addToCart, removeFromCart, updateQuantity, clearCart, setCartLoaded } =
   cartSlice.actions;
 export default cartSlice.reducer;

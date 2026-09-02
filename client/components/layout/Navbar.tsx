@@ -122,6 +122,24 @@ export default function Navbar() {
             <Search size={20} strokeWidth={1.5} />
           </button>
 
+          {/* Cart — always visible */}
+          <Link
+            href="/cart"
+            className="relative w-10 h-10 flex items-center justify-center transition-colors duration-300 cursor-pointer"
+            style={{ color: navTextColor }}
+          >
+            <ShoppingBag size={20} strokeWidth={1.5} />
+            {cartCount > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute top-1 right-1 w-[18px] h-[18px] bg-[#171717] text-white text-[10px] font-semibold rounded-full flex items-center justify-center"
+              >
+                {cartCount}
+              </motion.span>
+            )}
+          </Link>
+
           {/* Auth buttons / Profile — show spinner while initializing */}
           {!isInitialized ? (
             <div className="flex items-center gap-2">
@@ -133,23 +151,6 @@ export default function Navbar() {
             </div>
           ) : isAuthenticated ? (
             <>
-              <button
-                aria-label="Cart"
-                className="relative w-10 h-10 flex items-center justify-center transition-colors duration-300 cursor-pointer"
-                style={{ color: navTextColor }}
-              >
-                <ShoppingBag size={20} strokeWidth={1.5} />
-                {cartCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute top-1 right-1 w-[18px] h-[18px] bg-[#171717] text-white text-[10px] font-semibold rounded-full flex items-center justify-center"
-                  >
-                    {cartCount}
-                  </motion.span>
-                )}
-              </button>
-
               {/* Profile dropdown */}
               <div ref={profileRef} className="relative">
                 <button

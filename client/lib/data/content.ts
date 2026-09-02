@@ -194,8 +194,7 @@ export const siteContent = {
 
 export const navigationLinks = [
   { label: "Home", href: "/" },
-  { label: "Products", href: "#shop" },
+  { label: "Products", href: "/products" },
   { label: "About", href: "/about" },
-  { label: "Bulk Orders", href: "#shop" },
   { label: "Contact", href: "/contact" },
 ];
