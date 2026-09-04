@@ -48,6 +48,8 @@ interface Order {
   paymentProof: PaymentProof | null;
   bankDetails: BankDetails;
   orderStatus: string;
+  cancellationReason: string;
+  paymentRejectionReason: string;
   statusHistory: { status: string; changedAt: string }[];
   isActive: boolean;
   createdAt: string;
@@ -83,6 +85,12 @@ export default function AdminOrderDetailPage() {
   const [error, setError] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [cancelModal, setCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
+  const [rejectModal, setRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
 
   const authHeaders: Record<string, string> = {
     "Content-Type": "application/json",
@@ -119,19 +127,32 @@ export default function AdminOrderDetailPage() {
   };
 
   const handleRejectPayment = async () => {
-    if (!order) return;
+    if (!order || !rejectReason.trim()) return;
+    setRejecting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/orders/${order.id}/reject-payment`, { method: "PATCH", headers: authHeaders });
+      const res = await fetch(`${API_BASE_URL}/orders/${order.id}/reject-payment`, {
+        method: "PATCH",
+        headers: authHeaders,
+        body: JSON.stringify({ reason: rejectReason.trim() }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setOrder(data.order);
+      setRejectModal(false);
+      setRejectReason("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to reject payment");
+    } finally {
+      setRejecting(false);
     }
   };
 
   const handleUpdateStatus = async (orderStatus: string) => {
     if (!order) return;
+    if (orderStatus === "cancelled") {
+      setCancelModal(true);
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE_URL}/orders/${order.id}/order-status`, {
         method: "PATCH", headers: authHeaders,
@@ -142,6 +163,26 @@ export default function AdminOrderDetailPage() {
       setOrder(data.order);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update status");
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!order || !cancelReason.trim()) return;
+    setCancelling(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/${order.id}/order-status`, {
+        method: "PATCH", headers: authHeaders,
+        body: JSON.stringify({ orderStatus: "cancelled", reason: cancelReason.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setOrder(data.order);
+      setCancelModal(false);
+      setCancelReason("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to cancel order");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -203,6 +244,62 @@ export default function AdminOrderDetailPage() {
                   <button onClick={() => setDeleteConfirm(false)} className="flex-1 h-11 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer">Cancel</button>
                   <button onClick={handleDelete} disabled={deleting} className="flex-1 h-11 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600 disabled:opacity-50 transition-all cursor-pointer">
                     {deleting ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Cancel Order Modal */}
+      <AnimatePresence>
+        {cancelModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => { setCancelModal(false); setCancelReason(""); }} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl p-8">
+                <h3 className="text-[18px] font-semibold text-[#171717] mb-2">Cancel Order</h3>
+                <p className="text-[13px] text-[#6F6F69] mb-4">Please provide a reason for cancelling this order.</p>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Cancellation reason..."
+                  rows={3}
+                  className="w-full px-3 py-2.5 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[13px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all resize-none mb-4"
+                />
+                <div className="flex gap-3">
+                  <button onClick={() => { setCancelModal(false); setCancelReason(""); }} className="flex-1 h-11 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer">Close</button>
+                  <button onClick={handleConfirmCancel} disabled={cancelling || !cancelReason.trim()} className="flex-1 h-11 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600 disabled:opacity-50 transition-all cursor-pointer">
+                    {cancelling ? "Cancelling..." : "Confirm Cancellation"}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Reject Payment Modal */}
+      <AnimatePresence>
+        {rejectModal && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => { setRejectModal(false); setRejectReason(""); }} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl p-8">
+                <h3 className="text-[18px] font-semibold text-[#171717] mb-2">Reject Payment</h3>
+                <p className="text-[13px] text-[#6F6F69] mb-4">Please provide a reason for rejecting this payment.</p>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Rejection reason..."
+                  rows={3}
+                  className="w-full px-3 py-2.5 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[13px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all resize-none mb-4"
+                />
+                <div className="flex gap-3">
+                  <button onClick={() => { setRejectModal(false); setRejectReason(""); }} className="flex-1 h-11 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer">Close</button>
+                  <button onClick={handleRejectPayment} disabled={rejecting || !rejectReason.trim()} className="flex-1 h-11 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600 disabled:opacity-50 transition-all cursor-pointer">
+                    {rejecting ? "Rejecting..." : "Confirm Rejection"}
                   </button>
                 </div>
               </div>
@@ -290,6 +387,20 @@ export default function AdminOrderDetailPage() {
               </div>
             )}
 
+            {order.orderStatus === "cancelled" && (
+              <div className="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-100">
+                <p className="text-[11px] font-semibold text-red-600 uppercase tracking-wider mb-1">Cancellation Reason</p>
+                <p className="text-[13px] text-red-700">{order.cancellationReason || "No reason provided."}</p>
+              </div>
+            )}
+
+            {order.paymentStatus === "rejected" && order.paymentRejectionReason && (
+              <div className="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-100">
+                <p className="text-[11px] font-semibold text-red-600 uppercase tracking-wider mb-1">Payment Rejection Reason</p>
+                <p className="text-[13px] text-red-700">{order.paymentRejectionReason}</p>
+              </div>
+            )}
+
             {/* Items */}
             {order.items.length > 0 && (
               <div>
@@ -356,7 +467,7 @@ export default function AdminOrderDetailPage() {
                 <button onClick={handleVerifyPayment} className="flex items-center gap-2 h-10 px-4 rounded-lg bg-green-600 text-white text-[13px] font-medium hover:bg-green-700 transition-all cursor-pointer flex-1">
                   <CheckCircle size={16} /> Verify
                 </button>
-                <button onClick={handleRejectPayment} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-red-200 text-[13px] font-medium text-red-500 hover:bg-red-50 transition-all cursor-pointer flex-1">
+                <button onClick={() => setRejectModal(true)} className="flex items-center gap-2 h-10 px-4 rounded-lg border border-red-200 text-[13px] font-medium text-red-500 hover:bg-red-50 transition-all cursor-pointer flex-1">
                   <XCircle size={16} /> Reject
                 </button>
               </div>

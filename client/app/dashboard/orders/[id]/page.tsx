@@ -55,6 +55,8 @@ interface Order {
   paymentProof: PaymentProof | null;
   bankDetails: BankDetails;
   orderStatus: string;
+  cancellationReason: string;
+  paymentRejectionReason: string;
   statusHistory: StatusHistoryEntry[];
   isActive: boolean;
   createdAt: string;
@@ -103,6 +105,7 @@ export default function OrderDetailPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
   const [cancelConfirm, setCancelConfirm] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -171,14 +174,15 @@ export default function OrderDetailPage() {
   };
 
   const handleCancel = async () => {
-    if (!order || !token) return;
+    if (!order || !token || !cancelReason.trim()) return;
     setCancelling(true);
     try {
       const res = await fetch(
         `${API_BASE_URL}/store/orders/${order.id}/cancel`,
         {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ reason: cancelReason.trim() }),
         }
       );
       const data = await res.json();
@@ -333,6 +337,28 @@ export default function OrderDetailPage() {
                   Notes
                 </p>
                 <p className="text-[13px] text-[#171717]">{order.notes}</p>
+              </div>
+            )}
+
+            {order.orderStatus === "cancelled" && (
+              <div className="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-100">
+                <p className="text-[11px] font-semibold text-red-600 uppercase tracking-wider mb-1">
+                  Cancellation Reason
+                </p>
+                <p className="text-[13px] text-red-700">
+                  {order.cancellationReason || "No reason provided."}
+                </p>
+              </div>
+            )}
+
+            {order.paymentStatus === "rejected" && order.paymentRejectionReason && (
+              <div className="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-100">
+                <p className="text-[11px] font-semibold text-red-600 uppercase tracking-wider mb-1">
+                  Payment Rejection Reason
+                </p>
+                <p className="text-[13px] text-red-700">
+                  {order.paymentRejectionReason}
+                </p>
               </div>
             )}
 
@@ -604,16 +630,28 @@ export default function OrderDetailPage() {
                   <p className="text-[13px] text-[#171717] mb-3">
                     Are you sure you want to cancel this order?
                   </p>
+                  <div className="mb-3">
+                    <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5">
+                      Cancellation Reason * <span className="text-red-500">Required</span>
+                    </label>
+                    <textarea
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      placeholder="Please provide a reason for cancellation..."
+                      rows={3}
+                      className="w-full px-3 py-2.5 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[13px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all resize-none"
+                    />
+                  </div>
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setCancelConfirm(false)}
+                      onClick={() => { setCancelConfirm(false); setCancelReason(""); }}
                       className="flex-1 h-10 px-4 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer"
                     >
                       Keep Order
                     </button>
                     <button
                       onClick={handleCancel}
-                      disabled={cancelling}
+                      disabled={cancelling || !cancelReason.trim()}
                       className="flex-1 h-10 px-4 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600 disabled:opacity-50 transition-all cursor-pointer"
                     >
                       {cancelling ? "Cancelling..." : "Cancel Order"}

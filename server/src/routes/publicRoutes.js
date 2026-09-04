@@ -337,8 +337,12 @@ router.post("/orders/:id/cancel", authMiddleware, async (req, res) => {
     }
     const { reason } = req.body;
     const cancelReason = reason ? String(reason).trim() : "";
+    if (!cancelReason) {
+      return res.status(400).json({ success: false, message: "Cancellation reason is required" });
+    }
     order.orderStatus = "cancelled";
     order.isActive = false;
+    order.cancellationReason = cancelReason;
     order.statusHistory.push({ status: "cancelled", changedAt: new Date(), changedBy: String(req.user._id) });
     await order.save();
 
@@ -419,6 +423,8 @@ function sanitizeOrder(order) {
     notes: order.notes,
     paymentStatus: order.paymentStatus, paymentProof: order.paymentProof,
     bankDetails: order.bankDetails, orderStatus: order.orderStatus,
+    cancellationReason: order.cancellationReason || "",
+    paymentRejectionReason: order.paymentRejectionReason || "",
     statusHistory: order.statusHistory, isActive: order.isActive,
     createdAt: order.createdAt, updatedAt: order.updatedAt,
   };

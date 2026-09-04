@@ -20,6 +20,8 @@ function sanitizeOrder(order) {
     paymentProof: order.paymentProof,
     bankDetails: order.bankDetails,
     orderStatus: order.orderStatus,
+    cancellationReason: order.cancellationReason || "",
+    paymentRejectionReason: order.paymentRejectionReason || "",
     statusHistory: order.statusHistory,
     isActive: order.isActive,
     createdAt: order.createdAt,
@@ -327,7 +329,12 @@ export const rejectPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: "No payment proof to reject" });
     }
     const { reason } = req.body;
+    const rejectReason = reason ? String(reason).trim() : "";
+    if (!rejectReason) {
+      return res.status(400).json({ success: false, message: "Rejection reason is required" });
+    }
     order.paymentStatus = "rejected";
+    order.paymentRejectionReason = rejectReason;
     order.statusHistory.push({
       status: "payment_rejected",
       changedAt: new Date(),
@@ -366,7 +373,7 @@ export const updateOrderStatus = async (req, res) => {
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
-    const { orderStatus } = req.body;
+    const { orderStatus, reason } = req.body;
     const validStatuses = ["pending_payment", "processing", "dispatched", "delivered", "cancelled"];
     if (!validStatuses.includes(orderStatus)) {
       return res.status(400).json({ success: false, message: "Invalid order status" });
@@ -379,10 +386,21 @@ export const updateOrderStatus = async (req, res) => {
     if (orderStatus === "cancelled" && ["dispatched", "delivered"].includes(order.orderStatus)) {
       return res.status(400).json({ success: false, message: "Cannot cancel after dispatch" });
     }
+    // Require reason for cancellation
+    if (orderStatus === "cancelled") {
+      const cancelReason = reason ? String(reason).trim() : "";
+      if (!cancelReason) {
+        return res.status(400).json({ success: false, message: "Cancellation reason is required" });
+      }
+    }
     const previousStatus = order.orderStatus;
     order.orderStatus = orderStatus;
-    if (orderStatus === "cancelled") order.isActive = false;
-    else order.isActive = true;
+    if (orderStatus === "cancelled") {
+      order.isActive = false;
+      order.cancellationReason = reason ? String(reason).trim() : "";
+    } else {
+      order.isActive = true;
+    }
     order.statusHistory.push({
       status: orderStatus,
       changedAt: new Date(),

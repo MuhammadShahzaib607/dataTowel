@@ -99,6 +99,14 @@ const orderSchema = new mongoose.Schema(
       default: "pending_payment",
     },
     statusHistory: [statusHistorySchema],
+    cancellationReason: {
+      type: String,
+      default: "",
+    },
+    paymentRejectionReason: {
+      type: String,
+      default: "",
+    },
     isActive: {
       type: Boolean,
       default: true,
