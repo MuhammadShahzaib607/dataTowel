@@ -10,7 +10,7 @@ export const getAdminNotifications = async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    const filter = {};
+    const filter = { recipient: "admin" };
     if (userId && userId.trim()) {
       filter.userId = userId.trim();
     }
@@ -40,7 +40,7 @@ export const getAdminNotifications = async (req, res) => {
 // GET /api/admin/notifications/unread-count
 export const getAdminUnreadCount = async (req, res) => {
   try {
-    const count = await Notification.countDocuments({ isRead: false });
+    const count = await Notification.countDocuments({ recipient: "admin", isRead: false });
     res.json({ success: true, count });
   } catch (error) {
     console.error("[Notification] Get admin unread count error:", error.message);
@@ -51,7 +51,7 @@ export const getAdminUnreadCount = async (req, res) => {
 // PATCH /api/admin/notifications/read-all
 export const markAdminAllAsRead = async (req, res) => {
   try {
-    await Notification.updateMany({ isRead: false }, { isRead: true });
+    await Notification.updateMany({ recipient: "admin", isRead: false }, { isRead: true });
     res.json({ success: true, message: "All notifications marked as read" });
   } catch (error) {
     console.error("[Notification] Mark all admin notifications read error:", error.message);
@@ -87,7 +87,7 @@ export const getUserNotifications = async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    const filter = { userId: req.user._id };
+    const filter = { userId: req.user._id, recipient: "user" };
     if (isRead === "true") filter.isRead = true;
     else if (isRead === "false") filter.isRead = false;
 
@@ -114,7 +114,7 @@ export const getUserNotifications = async (req, res) => {
 // GET /api/notifications/unread-count
 export const getUserUnreadCount = async (req, res) => {
   try {
-    const count = await Notification.countDocuments({ userId: req.user._id, isRead: false });
+    const count = await Notification.countDocuments({ userId: req.user._id, recipient: "user", isRead: false });
     res.json({ success: true, count });
   } catch (error) {
     console.error("[Notification] Get user unread count error:", error.message);
@@ -125,7 +125,7 @@ export const getUserUnreadCount = async (req, res) => {
 // PATCH /api/notifications/read-all
 export const markUserAllAsRead = async (req, res) => {
   try {
-    await Notification.updateMany({ userId: req.user._id, isRead: false }, { isRead: true });
+    await Notification.updateMany({ userId: req.user._id, recipient: "user", isRead: false }, { isRead: true });
     res.json({ success: true, message: "All notifications marked as read" });
   } catch (error) {
     console.error("[Notification] Mark all user notifications read error:", error.message);
@@ -160,6 +160,7 @@ export async function createAdminNotification({ type, title, message, userId, or
       type, title, message, userId, orderId,
       reason: reason || "",
       link: link || `/admin/orders/${orderId}`,
+      recipient: "admin",
       isRead: false,
     });
     console.log(`[Notification] Created: ${notification._id}`);
@@ -178,6 +179,7 @@ export async function createUserNotification({ type, title, message, userId, ord
       type, title, message, userId, orderId,
       reason: reason || "",
       link: link || `/dashboard/orders/${orderId}`,
+      recipient: "user",
       isRead: false,
     });
     console.log(`[Notification] Created: ${notification._id}`);

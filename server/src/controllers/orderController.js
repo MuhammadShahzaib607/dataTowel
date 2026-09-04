@@ -398,6 +398,17 @@ export const rejectPayment = async (req, res) => {
   }
 };
 
+// ─── LINEAR ORDER STATUS TRANSITION MAP ─────────────────
+// Allowed forward-only transitions. Once an order moves forward,
+// previous statuses are permanently unavailable.
+const ALLOWED_TRANSITIONS = {
+  pending_payment: ["processing", "cancelled"],
+  processing: ["dispatched", "cancelled"],
+  dispatched: ["delivered", "cancelled"],
+  delivered: [],    // terminal — no further changes
+  cancelled: [],    // terminal — no further changes
+};
+
 // PATCH /api/orders/:id/order-status
 export const updateOrderStatus = async (req, res) => {
   try {
@@ -410,14 +421,25 @@ export const updateOrderStatus = async (req, res) => {
     if (!validStatuses.includes(orderStatus)) {
       return res.status(400).json({ success: false, message: "Invalid order status" });
     }
-    // Enforce: cannot move to processing/dispatched/delivered without verified payment
+
+    // ── LINEAR TRANSITION VALIDATION ──
+    const currentStatus = order.orderStatus;
+    if (currentStatus === orderStatus) {
+      return res.status(400).json({ success: false, message: "Order is already in this status" });
+    }
+    const allowedNext = ALLOWED_TRANSITIONS[currentStatus] || [];
+    if (!allowedNext.includes(orderStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid order status transition. Cannot change from "${formatStatus(currentStatus)}" to "${formatStatus(orderStatus)}".`,
+      });
+    }
+
+    // Enforce: payment must be verified before any fulfillment progression
     if (["processing", "dispatched", "delivered"].includes(orderStatus) && order.paymentStatus !== "verified") {
-      return res.status(400).json({ success: false, message: "Payment must be verified before changing to this status" });
+      return res.status(400).json({ success: false, message: "Payment must be verified before updating the order status." });
     }
-    // Enforce: cannot cancel after dispatched
-    if (orderStatus === "cancelled" && ["dispatched", "delivered"].includes(order.orderStatus)) {
-      return res.status(400).json({ success: false, message: "Cannot cancel after dispatch" });
-    }
+
     // Require reason for cancellation
     if (orderStatus === "cancelled") {
       const cancelReason = reason ? String(reason).trim() : "";
@@ -425,6 +447,7 @@ export const updateOrderStatus = async (req, res) => {
         return res.status(400).json({ success: false, message: "Cancellation reason is required" });
       }
     }
+
     const previousStatus = order.orderStatus;
     order.orderStatus = orderStatus;
     if (orderStatus === "cancelled") {
@@ -442,12 +465,21 @@ export const updateOrderStatus = async (req, res) => {
 
     // Notify user if status actually changed
     if (previousStatus !== orderStatus && order.customer) {
+      const orderLabel = order.orderNumber || order._id;
+      let notificationMessage = `Your order ${orderLabel} has been ${formatStatus(orderStatus).toLowerCase()}.`;
+      if (orderStatus === "cancelled") {
+        const cancelReason = reason ? String(reason).trim() : "";
+        notificationMessage = cancelReason
+          ? `Your order ${orderLabel} has been cancelled. Reason: ${cancelReason}`
+          : `Your order ${orderLabel} has been cancelled.`;
+      }
       createUserNotification({
         type: "order_status_update",
         title: "Order Status Updated",
-        message: `Your order status has been updated to: ${formatStatus(orderStatus)}.`,
+        message: notificationMessage,
         userId: order.customer,
         orderId: order._id,
+        reason: orderStatus === "cancelled" ? (reason ? String(reason).trim() : "") : "",
         link: `/dashboard/orders/${order._id}`,
       }).catch(() => {});
     }

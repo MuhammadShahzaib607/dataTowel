@@ -67,14 +67,29 @@ const statusColors: Record<string, string> = {
   cancelled: "bg-gray-100 text-[#96958D]",
 };
 
-const orderStatusOptions = [
-  "pending_payment", "processing", "dispatched", "delivered", "cancelled",
-];
+// Linear order status steps for the timeline (excluding pending_payment)
+const fulfillmentSteps = ["processing", "dispatched", "delivered"];
+
+// Allowed forward-only transitions
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  pending_payment: ["processing", "cancelled"],
+  processing: ["dispatched", "cancelled"],
+  dispatched: ["delivered", "cancelled"],
+  delivered: [],
+  cancelled: [],
+};
 
 const formatStatus = (s?: string | null) => {
   if (!s) return "Unknown";
   return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 };
+
+// Determine which timeline step index the current status is at
+function getTimelineIndex(status: string): number {
+  if (status === "cancelled") return -1; // special case
+  const idx = fulfillmentSteps.indexOf(status);
+  return idx >= 0 ? idx : -1;
+}
 
 export default function AdminOrderDetailPage() {
   const router = useRouter();
@@ -85,9 +100,14 @@ export default function AdminOrderDetailPage() {
   const [error, setError] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [cancelModal, setCancelModal] = useState(false);
+
+  // Status update modal state
+  const [statusModal, setStatusModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState("");
+  const [statusUpdating, setStatusUpdating] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
-  const [cancelling, setCancelling] = useState(false);
+
+  // Reject payment modal
   const [rejectModal, setRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
@@ -147,42 +167,41 @@ export default function AdminOrderDetailPage() {
     }
   };
 
-  const handleUpdateStatus = async (orderStatus: string) => {
+  // Open confirmation modal for status change
+  const handleStatusClick = (newStatus: string) => {
     if (!order) return;
-    if (orderStatus === "cancelled") {
-      setCancelModal(true);
-      return;
-    }
-    try {
-      const res = await fetch(`${API_BASE_URL}/orders/${order.id}/order-status`, {
-        method: "PATCH", headers: authHeaders,
-        body: JSON.stringify({ orderStatus }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      setOrder(data.order);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status");
-    }
+    const allowed = ALLOWED_TRANSITIONS[order.orderStatus] || [];
+    if (!allowed.includes(newStatus)) return;
+    setPendingStatus(newStatus);
+    setCancelReason("");
+    setStatusModal(true);
   };
 
-  const handleConfirmCancel = async () => {
-    if (!order || !cancelReason.trim()) return;
-    setCancelling(true);
+  // Confirm and execute status update (non-optimistic)
+  const handleConfirmStatusUpdate = async () => {
+    if (!order || !pendingStatus) return;
+    setStatusUpdating(true);
     try {
+      const body: Record<string, string> = { orderStatus: pendingStatus };
+      if (pendingStatus === "cancelled") {
+        body.reason = cancelReason.trim();
+      }
       const res = await fetch(`${API_BASE_URL}/orders/${order.id}/order-status`, {
-        method: "PATCH", headers: authHeaders,
-        body: JSON.stringify({ orderStatus: "cancelled", reason: cancelReason.trim() }),
+        method: "PATCH",
+        headers: authHeaders,
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
+      // Only update UI after backend success
       setOrder(data.order);
-      setCancelModal(false);
+      setStatusModal(false);
+      setPendingStatus("");
       setCancelReason("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to cancel order");
+      setError(err instanceof Error ? err.message : "Failed to update status");
     } finally {
-      setCancelling(false);
+      setStatusUpdating(false);
     }
   };
 
@@ -227,7 +246,34 @@ export default function AdminOrderDetailPage() {
 
   if (!order) return null;
 
-  const canDelete = !["dispatched", "delivered"].includes(order.orderStatus);
+  const canDelete = !["dispatched", "delivered", "cancelled"].includes(order.orderStatus);
+  const isTerminal = ["delivered", "cancelled"].includes(order.orderStatus);
+  const currentTimelineIdx = getTimelineIndex(order.orderStatus);
+  const isCancelled = order.orderStatus === "cancelled";
+  const isPaymentVerified = order.paymentStatus === "verified";
+  const allowedNext = ALLOWED_TRANSITIONS[order.orderStatus] || [];
+
+  // Build timeline step data
+  const timelineSteps = fulfillmentSteps.map((step, idx) => {
+    let state: "completed" | "current" | "upcoming" | "disabled" = "upcoming";
+    if (isCancelled) {
+      // If cancelled, completed steps up to cancellation point stay completed
+      if (currentTimelineIdx >= 0 && idx < currentTimelineIdx) {
+        state = "completed";
+      } else if (idx === currentTimelineIdx) {
+        state = "completed"; // the step where cancellation happened
+      } else {
+        state = "disabled";
+      }
+    } else if (idx < currentTimelineIdx) {
+      state = "completed";
+    } else if (idx === currentTimelineIdx) {
+      state = "current";
+    } else {
+      state = "upcoming";
+    }
+    return { step, state, label: formatStatus(step) };
+  });
 
   return (
     <div>
@@ -252,26 +298,75 @@ export default function AdminOrderDetailPage() {
         )}
       </AnimatePresence>
 
-      {/* Cancel Order Modal */}
+      {/* Status Update Confirmation Modal */}
       <AnimatePresence>
-        {cancelModal && (
+        {statusModal && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => { setCancelModal(false); setCancelReason(""); }} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => { if (!statusUpdating) { setStatusModal(false); setPendingStatus(""); setCancelReason(""); } }} />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="w-full max-w-[420px] bg-white rounded-2xl shadow-2xl p-8">
-                <h3 className="text-[18px] font-semibold text-[#171717] mb-2">Cancel Order</h3>
-                <p className="text-[13px] text-[#6F6F69] mb-4">Please provide a reason for cancelling this order.</p>
-                <textarea
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Cancellation reason..."
-                  rows={3}
-                  className="w-full px-3 py-2.5 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[13px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all resize-none mb-4"
-                />
+                <h3 className="text-[18px] font-semibold text-[#171717] mb-2">Update Order Status?</h3>
+                {pendingStatus === "cancelled" ? (
+                  <>
+                    <p className="text-[13px] text-[#6F6F69] mb-4">
+                      You are about to cancel order{" "}
+                      <span className="font-medium text-[#171717]">{order.orderNumber || order.id.slice(0, 8)}</span>.
+                    </p>
+                    <div className="mb-4">
+                      <label className="block text-[12px] font-medium text-[#6F6F69] mb-1.5">
+                        Cancellation Reason <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="Enter reason..."
+                        rows={3}
+                        className="w-full px-3 py-2.5 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[13px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all resize-none"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-[13px] text-[#6F6F69] mb-4">
+                    You are about to change order{" "}
+                    <span className="font-medium text-[#171717]">{order.orderNumber || order.id.slice(0, 8)}</span>
+                    {" "}from{" "}
+                    <span className="font-medium text-[#171717]">{formatStatus(order.orderStatus)}</span>
+                    {" "}to{" "}
+                    <span className="font-medium text-[#171717]">{formatStatus(pendingStatus)}</span>.
+                  </p>
+                )}
+
+                {/* Status flow preview */}
+                <div className="flex items-center gap-3 mb-6 px-3 py-3 rounded-lg bg-[#FAFAF7]">
+                  <span className={`text-[12px] font-medium ${isCancelled ? "text-red-500" : "text-[#96958D] line-through"}`}>
+                    {formatStatus(order.orderStatus)}
+                  </span>
+                  <span className="text-[#96958D]">→</span>
+                  <span className={`text-[12px] font-medium ${pendingStatus === "cancelled" ? "text-red-500" : "text-green-600"}`}>
+                    {formatStatus(pendingStatus)}
+                  </span>
+                </div>
+
                 <div className="flex gap-3">
-                  <button onClick={() => { setCancelModal(false); setCancelReason(""); }} className="flex-1 h-11 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer">Close</button>
-                  <button onClick={handleConfirmCancel} disabled={cancelling || !cancelReason.trim()} className="flex-1 h-11 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600 disabled:opacity-50 transition-all cursor-pointer">
-                    {cancelling ? "Cancelling..." : "Confirm Cancellation"}
+                  <button
+                    onClick={() => { setStatusModal(false); setPendingStatus(""); setCancelReason(""); }}
+                    disabled={statusUpdating}
+                    className="flex-1 h-11 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmStatusUpdate}
+                    disabled={statusUpdating || (pendingStatus === "cancelled" && !cancelReason.trim())}
+                    className={`flex-1 h-11 rounded-lg text-white text-[13px] font-medium hover:opacity-90 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                      pendingStatus === "cancelled" ? "bg-red-500 hover:bg-red-600" : "bg-[#171717] hover:bg-[#2a2a2a]"
+                    }`}
+                  >
+                    {statusUpdating ? (
+                      <><Loader2 size={16} className="animate-spin" /> Updating...</>
+                    ) : (
+                      pendingStatus === "cancelled" ? "Cancel Order" : "Update Status"
+                    )}
                   </button>
                 </div>
               </div>
@@ -474,28 +569,111 @@ export default function AdminOrderDetailPage() {
             </div>
           )}
 
-          {/* Order Status Control */}
+          {/* Order Status Timeline */}
           <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
-            <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-3">Order Status</p>
-            <div className="flex flex-wrap gap-2">
-              {orderStatusOptions.map((status) => {
-                const isDisabled = ["processing", "dispatched", "delivered"].includes(status) && order.paymentStatus !== "verified";
+            <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-4">Order Status</p>
+
+            {/* Timeline */}
+            <div className="relative">
+              {timelineSteps.map((item, idx) => {
+                const isCompleted = item.state === "completed";
+                const isCurrent = item.state === "current";
+                const isUpcoming = item.state === "upcoming" && !isTerminal;
+                const isDisabled = item.state === "disabled" || (item.state === "upcoming" && isTerminal);
+                const canClick = isUpcoming && allowedNext.includes(item.step) && (isPaymentVerified || item.step === "cancelled");
+
                 return (
-                  <button
-                    key={status}
-                    onClick={() => !isDisabled && handleUpdateStatus(status)}
-                    disabled={isDisabled}
-                    className={`px-3 py-1.5 rounded-lg text-[12px] font-medium border transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                      order.orderStatus === status
-                        ? "bg-[#171717] text-white border-[#171717]"
-                        : "bg-[#FAFAF7] text-[#6F6F69] border-[#E8E6DF] hover:border-[#D8CBB8]"
-                    }`}
-                  >
-                    {formatStatus(status)}
-                  </button>
+                  <div key={item.step} className="flex items-start gap-3">
+                    {/* Vertical line + dot */}
+                    <div className="flex flex-col items-center">
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 transition-all ${
+                          isCompleted
+                            ? "bg-green-500 text-white"
+                            : isCurrent
+                              ? "bg-[#171717] text-white"
+                              : isDisabled
+                                ? "bg-[#E8E6DF]/50 text-[#96958D]"
+                                : "bg-[#FAFAF7] text-[#96958D] border-2 border-[#E8E6DF]"
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <CheckCircle size={14} />
+                        ) : (
+                          idx + 1
+                        )}
+                      </div>
+                      {/* Connector line */}
+                      {idx < timelineSteps.length - 1 && (
+                        <div className={`w-0.5 h-8 ${isCompleted ? "bg-green-500" : "bg-[#E8E6DF]/50"}`} />
+                      )}
+                    </div>
+
+                    {/* Label + action */}
+                    <div className="flex-1 pt-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[13px] font-medium ${
+                          isCompleted
+                            ? "text-green-600"
+                            : isCurrent
+                              ? "text-[#171717]"
+                              : isDisabled
+                                ? "text-[#96958D]"
+                                : "text-[#6F6F69]"
+                        }`}>
+                          {item.label}
+                          {isCompleted && <span className="ml-2 text-[11px] text-green-500">(completed)</span>}
+                          {isCurrent && <span className="ml-2 text-[11px] text-[#171717]">(current)</span>}
+                        </span>
+                        {canClick && (
+                          <button
+                            onClick={() => handleStatusClick(item.step)}
+                            disabled={statusUpdating}
+                            className="px-3 py-1 rounded-lg text-[11px] font-medium bg-[#171717] text-white hover:bg-[#2a2a2a] disabled:opacity-50 transition-all cursor-pointer"
+                          >
+                            Move to {item.label}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 );
               })}
             </div>
+
+            {/* Cancel button (when cancellation is allowed) */}
+            {allowedNext.includes("cancelled") && (
+              <div className="mt-4 pt-4 border-t border-[#E8E6DF]/50">
+                <button
+                  onClick={() => handleStatusClick("cancelled")}
+                  disabled={statusUpdating}
+                  className="w-full h-10 rounded-lg border border-red-200 text-[13px] font-medium text-red-500 hover:bg-red-50 disabled:opacity-50 transition-all cursor-pointer"
+                >
+                  Cancel Order
+                </button>
+              </div>
+            )}
+
+            {/* Payment verification warning */}
+            {!isPaymentVerified && !isTerminal && (
+              <div className="mt-4 pt-4 border-t border-[#E8E6DF]/50 text-[13px] text-center text-amber-600">
+                Payment must be verified before updating order status.
+              </div>
+            )}
+
+            {/* Terminal state message */}
+            {isTerminal && (
+              <div className={`mt-4 pt-4 border-t border-[#E8E6DF]/50 text-[13px] text-center ${isCancelled ? "text-red-500" : "text-green-600"}`}>
+                {isCancelled ? "Order has been cancelled. No further changes possible." : "Order is delivered. No further changes possible."}
+              </div>
+            )}
+
+            {/* Cancelled reason display */}
+            {isCancelled && order.cancellationReason && (
+              <div className="mt-3 px-3 py-2 rounded-lg bg-red-50 text-[12px] text-red-600">
+                <span className="font-medium">Reason:</span> {order.cancellationReason}
+              </div>
+            )}
           </div>
 
           {/* Order Summary with breakdown */}

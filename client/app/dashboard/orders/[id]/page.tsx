@@ -62,12 +62,8 @@ interface Order {
   createdAt: string;
 }
 
-const statusSteps = [
-  "pending_payment",
-  "processing",
-  "dispatched",
-  "delivered",
-];
+// Linear order status steps for the timeline
+const fulfillmentSteps = ["processing", "dispatched", "delivered"];
 
 const statusLabels: Record<string, string> = {
   pending_payment: "Order Placed",
@@ -93,6 +89,13 @@ const formatStatus = (s?: string | null) => {
   if (!s) return "Unknown";
   return s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 };
+
+// Determine which timeline step index the current status is at
+function getTimelineIndex(status: string): number {
+  if (status === "cancelled") return -1;
+  const idx = fulfillmentSteps.indexOf(status);
+  return idx >= 0 ? idx : -1;
+}
 
 export default function OrderDetailPage() {
   const router = useRouter();
@@ -189,6 +192,7 @@ export default function OrderDetailPage() {
       if (!res.ok) throw new Error(data.message);
       setOrder(data.order);
       setCancelConfirm(false);
+      setCancelReason("");
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to cancel order"
@@ -248,6 +252,31 @@ export default function OrderDetailPage() {
   const orderLabel = order.orderNumber || `#${order.id.slice(-6).toUpperCase()}`;
   const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hello DataTowel, I want to contact you regarding my order ${orderLabel}.`)}`;
   const emailUrl = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Order Inquiry - ${orderLabel}`)}`;
+
+  // Timeline data
+  const currentTimelineIdx = getTimelineIndex(order.orderStatus);
+  const isCancelled = order.orderStatus === "cancelled";
+  const isTerminal = ["delivered", "cancelled"].includes(order.orderStatus);
+
+  const timelineSteps = fulfillmentSteps.map((step, idx) => {
+    let state: "completed" | "current" | "upcoming" | "disabled" = "upcoming";
+    if (isCancelled) {
+      if (currentTimelineIdx >= 0 && idx < currentTimelineIdx) {
+        state = "completed";
+      } else if (idx === currentTimelineIdx) {
+        state = "completed";
+      } else {
+        state = "disabled";
+      }
+    } else if (idx < currentTimelineIdx) {
+      state = "completed";
+    } else if (idx === currentTimelineIdx) {
+      state = "current";
+    } else {
+      state = "upcoming";
+    }
+    return { step, state, label: statusLabels[step] || formatStatus(step) };
+  });
 
   return (
     <div>
@@ -541,16 +570,80 @@ export default function OrderDetailPage() {
             </div>
           )}
 
-          {/* Order Status */}
+          {/* Order Status Timeline (read-only for user) */}
           <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5">
-            <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-3">
+            <p className="text-[11px] font-semibold text-[#96958D] uppercase tracking-wider mb-4">
               Order Status
             </p>
-            <span
-              className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium ${statusColors[order.orderStatus] || ""}`}
-            >
-              {formatStatus(order.orderStatus)}
-            </span>
+
+            {/* Timeline */}
+            <div className="relative">
+              {timelineSteps.map((item, idx) => {
+                const isCompleted = item.state === "completed";
+                const isCurrent = item.state === "current";
+                const isDisabled = item.state === "disabled" || (item.state === "upcoming" && isTerminal);
+
+                return (
+                  <div key={item.step} className="flex items-start gap-3">
+                    {/* Vertical line + dot */}
+                    <div className="flex flex-col items-center">
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0 transition-all ${
+                          isCompleted
+                            ? "bg-green-500 text-white"
+                            : isCurrent
+                              ? "bg-[#171717] text-white"
+                              : isDisabled
+                                ? "bg-[#E8E6DF]/50 text-[#96958D]"
+                                : "bg-[#FAFAF7] text-[#96958D] border-2 border-[#E8E6DF]"
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <CheckCircle size={14} />
+                        ) : (
+                          idx + 1
+                        )}
+                      </div>
+                      {/* Connector line */}
+                      {idx < timelineSteps.length - 1 && (
+                        <div className={`w-0.5 h-8 ${isCompleted ? "bg-green-500" : "bg-[#E8E6DF]/50"}`} />
+                      )}
+                    </div>
+
+                    {/* Label */}
+                    <div className="flex-1 pt-0.5">
+                      <span className={`text-[13px] font-medium ${
+                        isCompleted
+                          ? "text-green-600"
+                          : isCurrent
+                            ? "text-[#171717]"
+                            : isDisabled
+                              ? "text-[#96958D]"
+                              : "text-[#6F6F69]"
+                      }`}>
+                        {item.label}
+                        {isCompleted && <span className="ml-2 text-[11px] text-green-500">(completed)</span>}
+                        {isCurrent && <span className="ml-2 text-[11px] text-[#171717]">(current)</span>}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Terminal state message */}
+            {isTerminal && (
+              <div className={`mt-4 pt-4 border-t border-[#E8E6DF]/50 text-[13px] text-center ${isCancelled ? "text-red-500" : "text-green-600"}`}>
+                {isCancelled ? "Order has been cancelled." : "Order has been delivered."}
+              </div>
+            )}
+
+            {/* Cancelled reason display */}
+            {isCancelled && order.cancellationReason && (
+              <div className="mt-3 px-3 py-2 rounded-lg bg-red-50 text-[12px] text-red-600">
+                <span className="font-medium">Reason:</span> {order.cancellationReason}
+              </div>
+            )}
           </div>
 
           {/* Order Summary with breakdown */}
