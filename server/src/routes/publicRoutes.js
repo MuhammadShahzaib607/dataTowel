@@ -7,6 +7,7 @@ import authMiddleware from "../middleware/authMiddleware.js";
 import upload from "../middleware/upload.js";
 import cloudinary from "../config/cloudinary.js";
 import { calculateDeliveryCharge, getPublicDeliverySettings } from "../controllers/deliverySettingsController.js";
+import { createOrderNotification, createAdminNotification, createUserNotification } from "../controllers/notificationController.js";
 
 const router = Router();
 
@@ -160,6 +161,13 @@ router.post("/orders", authMiddleware, async (req, res) => {
       statusHistory: [{ status: "pending_payment", changedAt: new Date(), changedBy: "system" }],
     });
 
+    console.log(`[Order] Order created: ${order._id}`);
+
+    // Create admin notification (fire-and-forget, don't block response)
+    createOrderNotification(order, req.user).catch((err) => {
+      console.error("[Notification] Failed to create notification:", err.message);
+    });
+
     res.status(201).json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
     console.error("Create store order error:", error.message);
@@ -295,6 +303,17 @@ router.post("/orders/:id/payment-proof", authMiddleware, upload.single("screensh
     order.statusHistory.push({ status: "payment_submitted", changedAt: new Date(), changedBy: String(req.user._id) });
 
     await order.save();
+
+    // Notify admin of payment screenshot upload
+    createAdminNotification({
+      type: "payment_screenshot_uploaded",
+      title: "Payment Screenshot Received",
+      message: `A customer has uploaded a payment screenshot for order ${order.orderNumber || order._id}.`,
+      userId: req.user._id,
+      orderId: order._id,
+      link: `/admin/orders/${order._id}`,
+    }).catch(() => {});
+
     res.json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
     console.error("Upload payment proof error:", error.message);
@@ -316,10 +335,27 @@ router.post("/orders/:id/cancel", authMiddleware, async (req, res) => {
     if (["dispatched", "delivered", "cancelled"].includes(order.orderStatus)) {
       return res.status(400).json({ success: false, message: "Order cannot be cancelled at this stage" });
     }
+    const { reason } = req.body;
+    const cancelReason = reason ? String(reason).trim() : "";
     order.orderStatus = "cancelled";
     order.isActive = false;
     order.statusHistory.push({ status: "cancelled", changedAt: new Date(), changedBy: String(req.user._id) });
     await order.save();
+
+    // Notify admin of order cancellation
+    const adminMessage = cancelReason
+      ? `A customer has cancelled order ${order.orderNumber || order._id}. Reason: ${cancelReason}`
+      : `A customer has cancelled order ${order.orderNumber || order._id}.`;
+    createAdminNotification({
+      type: "order_cancelled",
+      title: "Order Cancelled",
+      message: adminMessage,
+      userId: req.user._id,
+      orderId: order._id,
+      reason: cancelReason,
+      link: `/admin/orders/${order._id}`,
+    }).catch(() => {});
+
     res.json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
     console.error("Cancel order error:", error.message);

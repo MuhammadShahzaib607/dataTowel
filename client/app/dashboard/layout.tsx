@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -11,7 +11,10 @@ import {
   X,
   LogOut,
   Home,
+  Bell,
 } from "lucide-react";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { logout } from "@/lib/store/authSlice";
@@ -34,6 +37,12 @@ const sidebarLinks = [
     exact: false,
   },
   {
+    label: "Notifications",
+    href: "/dashboard/notifications",
+    icon: Bell,
+    exact: true,
+  },
+  {
     label: "Profile",
     href: "/dashboard/profile",
     icon: User,
@@ -49,8 +58,30 @@ export default function UserDashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, token } = useAppSelector((state) => state.auth);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    if (!token) return;
+    const fetchCount = () => {
+      fetch(`${API_BASE_URL}/notifications/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => { if (data.success) setUnreadCount(data.count || 0); })
+        .catch(() => {});
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 60000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  // Reset count when navigating to notifications
+  useEffect(() => {
+    if (pathname === "/dashboard/notifications") setUnreadCount(0);
+  }, [pathname]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -94,6 +125,11 @@ export default function UserDashboardLayout({
                     >
                       <link.icon size={16} strokeWidth={1.5} />
                       {link.label}
+                      {link.href === "/dashboard/notifications" && unreadCount > 0 && (
+                        <span className="ml-auto w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold">
+                          {unreadCount > 99 ? "99+" : unreadCount}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
@@ -196,6 +232,11 @@ export default function UserDashboardLayout({
                           >
                             <link.icon size={16} strokeWidth={1.5} />
                             {link.label}
+                            {link.href === "/dashboard/notifications" && unreadCount > 0 && (
+                              <span className="ml-auto w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold">
+                                {unreadCount > 99 ? "99+" : unreadCount}
+                              </span>
+                            )}
                           </Link>
                         </li>
                       );

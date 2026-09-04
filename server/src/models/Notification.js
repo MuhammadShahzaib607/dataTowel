@@ -5,7 +5,11 @@ const notificationSchema = new mongoose.Schema(
     type: {
       type: String,
       required: true,
-      default: "new_order",
+      index: true,
+    },
+    title: {
+      type: String,
+      required: true,
     },
     message: {
       type: String,
@@ -16,30 +20,31 @@ const notificationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    userName: {
-      type: String,
-      default: "",
-    },
     orderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Order",
       required: true,
     },
-    orderNumber: {
+    reason: {
+      type: String,
+      default: "",
+    },
+    link: {
       type: String,
       default: "",
     },
     isRead: {
       type: Boolean,
       default: false,
+      index: true,
     },
   },
   { timestamps: true }
 );
 
-// Index to prevent duplicate notifications for the same order
-notificationSchema.index({ orderId: 1, type: 1 }, { unique: true });
 notificationSchema.index({ createdAt: -1 });
+notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index({ orderId: 1, type: 1 });
 
 const Notification = mongoose.model("Notification", notificationSchema);
 

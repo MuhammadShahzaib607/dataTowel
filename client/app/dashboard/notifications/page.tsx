@@ -1,15 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
-import {
-  Bell,
-  Copy,
-  Check,
-  ExternalLink,
-  X,
-  Search,
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Bell, ExternalLink, X } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
 
@@ -36,7 +28,7 @@ interface Pagination {
   totalPages: number;
 }
 
-export default function AdminNotificationsPage() {
+export default function UserNotificationsPage() {
   const router = useRouter();
   const { token } = useAppSelector((state) => state.auth);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -45,9 +37,6 @@ export default function AdminNotificationsPage() {
   const [pagination, setPagination] = useState<Pagination>({
     page: 1, limit: 20, total: 0, totalPages: 0,
   });
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [userIdFilter, setUserIdFilter] = useState("");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const authHeaders: Record<string, string> = {
     "Content-Type": "application/json",
@@ -55,7 +44,7 @@ export default function AdminNotificationsPage() {
   };
 
   const fetchNotifications = useCallback(
-    async (page: number, userId?: string) => {
+    async (page: number) => {
       if (!token) return;
       try {
         setLoading(true);
@@ -63,10 +52,9 @@ export default function AdminNotificationsPage() {
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("limit", "20");
-        if (userId && userId.trim()) params.set("userId", userId.trim());
 
         const res = await fetch(
-          `${API_BASE_URL}/admin/notifications?${params.toString()}`,
+          `${API_BASE_URL}/notifications?${params.toString()}`,
           { headers: authHeaders }
         );
         const data = await res.json();
@@ -84,9 +72,9 @@ export default function AdminNotificationsPage() {
 
   // Auto mark all as read when page loads
   useEffect(() => {
-    fetchNotifications(1, "");
+    fetchNotifications(1);
     if (token) {
-      fetch(`${API_BASE_URL}/admin/notifications/read-all`, {
+      fetch(`${API_BASE_URL}/notifications/read-all`, {
         method: "PATCH",
         headers: authHeaders,
       }).catch(() => {});
@@ -94,37 +82,11 @@ export default function AdminNotificationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchNotifications, token]);
 
-  const handleUserIdSearch = (value: string) => {
-    setUserIdFilter(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchNotifications(1, value), 400);
-  };
-
-  const clearUserIdFilter = () => {
-    setUserIdFilter("");
-    fetchNotifications(1, "");
-  };
-
-  const handleCopy = async (text: string, fieldKey: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textarea);
-    }
-    setCopiedField(fieldKey);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const handleViewOrder = (notification: Notification) => {
-    if (notification.link) {
-      router.push(notification.link);
+  const handleViewOrder = (n: Notification) => {
+    if (n.link) {
+      router.push(n.link);
     } else {
-      router.push(`/admin/orders/${notification.orderId}`);
+      router.push(`/dashboard/orders/${n.orderId}`);
     }
   };
 
@@ -149,30 +111,6 @@ export default function AdminNotificationsPage() {
         <p className="mt-1.5 text-[14px] text-[#6F6F69]">
           {pagination.total} notification{pagination.total !== 1 ? "s" : ""}
         </p>
-      </div>
-
-      {/* User ID Filter */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#96958D]" />
-            <input
-              type="text"
-              placeholder="Search by User ID..."
-              value={userIdFilter}
-              onChange={(e) => handleUserIdSearch(e.target.value)}
-              className="w-full h-10 pl-8 pr-3 rounded-lg border border-[#E8E6DF] bg-white text-[13px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
-            />
-          </div>
-          {userIdFilter && (
-            <button
-              onClick={clearUserIdFilter}
-              className="h-10 px-3 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              <X size={14} /> Clear
-            </button>
-          )}
-        </div>
       </div>
 
       {error && (
@@ -201,7 +139,7 @@ export default function AdminNotificationsPage() {
         <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-16 text-center">
           <Bell size={40} className="text-[#D8CBB8] mx-auto mb-4" />
           <p className="text-[16px] font-medium text-[#171717] mb-1">No notifications yet</p>
-          <p className="text-[13px] text-[#96958D]">Notifications will appear here when activity occurs.</p>
+          <p className="text-[13px] text-[#96958D]">You&apos;ll be notified about order updates here.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -229,28 +167,8 @@ export default function AdminNotificationsPage() {
                   {n.reason && (
                     <p className="text-[12px] text-[#96958D] mt-1 italic">Reason: {n.reason}</p>
                   )}
-                  <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[#96958D]">
+                  <div className="mt-3 flex items-center gap-3 text-[11px] text-[#96958D]">
                     <span>{formatTime(n.createdAt)}</span>
-                    <button
-                      onClick={() => handleCopy(String(n.userId), `uid-${n.id}`)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAFAF7] border border-[#E8E6DF]/50 hover:bg-[#F2EFE8] transition-colors cursor-pointer"
-                    >
-                      {copiedField === `uid-${n.id}` ? (
-                        <><Check size={10} className="text-green-600" /><span className="text-green-600">Copied!</span></>
-                      ) : (
-                        <><Copy size={10} /><span>Copy User ID</span></>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleCopy(String(n.orderId), `oid-${n.id}`)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAFAF7] border border-[#E8E6DF]/50 hover:bg-[#F2EFE8] transition-colors cursor-pointer"
-                    >
-                      {copiedField === `oid-${n.id}` ? (
-                        <><Check size={10} className="text-green-600" /><span className="text-green-600">Copied!</span></>
-                      ) : (
-                        <><Copy size={10} /><span>Copy Order ID</span></>
-                      )}
-                    </button>
                   </div>
                 </div>
                 <button
@@ -283,7 +201,7 @@ export default function AdminNotificationsPage() {
                   ) : (
                     <button
                       key={p}
-                      onClick={() => fetchNotifications(p as number, userIdFilter)}
+                      onClick={() => fetchNotifications(p as number)}
                       className={`w-8 h-8 flex items-center justify-center rounded-lg text-[12px] font-medium transition-all cursor-pointer ${
                         pagination.page === p ? "bg-[#171717] text-white" : "border border-[#E8E6DF] text-[#6F6F69] hover:bg-[#FAFAF7]"
                       }`}

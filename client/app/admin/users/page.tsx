@@ -59,6 +59,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [userIdSearchQuery, setUserIdSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("newest");
   const [pagination, setPagination] = useState<Pagination>({
@@ -79,6 +80,7 @@ export default function AdminUsersPage() {
     async (
       page: number,
       search: string,
+      userIdSearch: string,
       status: string,
       sort: string
     ) => {
@@ -90,6 +92,7 @@ export default function AdminUsersPage() {
         params.set("page", String(page));
         params.set("limit", "20");
         if (search.trim()) params.set("search", search.trim());
+        if (userIdSearch.trim()) params.set("userId", userIdSearch.trim());
         if (status !== "all") params.set("status", status);
         if (sort) params.set("sort", sort);
 
@@ -111,14 +114,14 @@ export default function AdminUsersPage() {
   );
 
   useEffect(() => {
-    fetchUsers(1, "", "all", "newest");
+    fetchUsers(1, "", "", "all", "newest");
   }, [fetchUsers]);
 
   const debouncedFetch = useCallback(
-    (search: string, status: string, sort: string) => {
+    (search: string, userIdSearch: string, status: string, sort: string) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        fetchUsers(1, search, status, sort);
+        fetchUsers(1, search, userIdSearch, status, sort);
       }, 400);
     },
     [fetchUsers]
@@ -126,22 +129,27 @@ export default function AdminUsersPage() {
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
-    debouncedFetch(value, statusFilter, sortOrder);
+    debouncedFetch(value, userIdSearchQuery, statusFilter, sortOrder);
+  };
+
+  const handleUserIdSearchChange = (value: string) => {
+    setUserIdSearchQuery(value);
+    debouncedFetch(searchQuery, value, statusFilter, sortOrder);
   };
 
   const handleStatusChange = (value: string) => {
     setStatusFilter(value);
-    fetchUsers(1, searchQuery, value, sortOrder);
+    fetchUsers(1, searchQuery, userIdSearchQuery, value, sortOrder);
   };
 
   const handleSortChange = (value: string) => {
     setSortOrder(value);
-    fetchUsers(pagination.page, searchQuery, statusFilter, value);
+    fetchUsers(pagination.page, searchQuery, userIdSearchQuery, statusFilter, value);
   };
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > pagination.totalPages) return;
-    fetchUsers(newPage, searchQuery, statusFilter, sortOrder);
+    fetchUsers(newPage, searchQuery, userIdSearchQuery, statusFilter, sortOrder);
   };
 
   const formatDate = (d: string) =>
@@ -216,6 +224,19 @@ export default function AdminUsersPage() {
             className="w-full h-10 pl-8 pr-3 rounded-lg border border-[#E8E6DF] bg-white text-[13px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
           />
         </div>
+        <div className="relative w-full sm:w-[220px]">
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#96958D]"
+          />
+          <input
+            type="text"
+            placeholder="Search by User ID..."
+            value={userIdSearchQuery}
+            onChange={(e) => handleUserIdSearchChange(e.target.value)}
+            className="w-full h-10 pl-8 pr-3 rounded-lg border border-[#E8E6DF] bg-white text-[13px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
+          />
+        </div>
         <div className="w-full sm:w-[160px]">
           <CustomDropdown
             value={statusFilter}
@@ -282,12 +303,12 @@ export default function AdminUsersPage() {
         <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-16 text-center">
           <Users size={40} className="text-[#D8CBB8] mx-auto mb-4" />
           <p className="text-[16px] font-medium text-[#171717] mb-1">
-            {searchQuery || statusFilter !== "all"
+            {searchQuery || userIdSearchQuery || statusFilter !== "all"
               ? "No users match your search."
               : "No users found."}
           </p>
           <p className="text-[13px] text-[#96958D]">
-            {searchQuery || statusFilter !== "all"
+            {searchQuery || userIdSearchQuery || statusFilter !== "all"
               ? "Try adjusting your search criteria."
               : "Users will appear here once they register."}
           </p>

@@ -80,6 +80,7 @@ const paymentStatusFilterOptions = [
 
 interface Filters {
   orderId: string;
+  userId: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -93,6 +94,7 @@ interface Filters {
 
 const defaultFilters: Filters = {
   orderId: "",
+  userId: "",
   customerName: "",
   customerEmail: "",
   customerPhone: "",
@@ -123,6 +125,7 @@ export default function AdminOrdersPage() {
   const buildQueryParams = useCallback((f: Filters) => {
     const params = new URLSearchParams();
     if (f.orderId.trim()) params.set("orderId", f.orderId.trim());
+    if (f.userId.trim()) params.set("userId", f.userId.trim());
     if (f.customerName.trim()) params.set("customerName", f.customerName.trim());
     if (f.customerEmail.trim()) params.set("customerEmail", f.customerEmail.trim());
     if (f.customerPhone.trim()) params.set("customerPhone", f.customerPhone.trim());
@@ -210,6 +213,7 @@ export default function AdminOrdersPage() {
   // Build active filter chips
   const activeChips: { label: string; key: keyof Filters }[] = [];
   if (filters.orderId) activeChips.push({ label: `Order ID: ${filters.orderId}`, key: "orderId" });
+  if (filters.userId) activeChips.push({ label: `User ID: ${filters.userId}`, key: "userId" });
   if (filters.customerName) activeChips.push({ label: `Customer: ${filters.customerName}`, key: "customerName" });
   if (filters.customerEmail) activeChips.push({ label: `Email: ${filters.customerEmail}`, key: "customerEmail" });
   if (filters.customerPhone) activeChips.push({ label: `Phone: ${filters.customerPhone}`, key: "customerPhone" });
@@ -278,6 +282,17 @@ export default function AdminOrdersPage() {
                   <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#96958D]" />
                   <input
                     type="text"
+                    placeholder="Search by User ID"
+                    value={filters.userId}
+                    onChange={(e) => updateFilter("userId", e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
+                    className="w-full h-10 pl-9 pr-3 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[13px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
+                  />
+                </div>
+                <div className="relative">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#96958D]" />
+                  <input
+                    type="text"
                     placeholder="Search customer..."
                     value={filters.customerName}
                     onChange={(e) => updateFilter("customerName", e.target.value)}
@@ -296,6 +311,9 @@ export default function AdminOrdersPage() {
                     className="w-full h-10 pl-9 pr-3 rounded-lg border border-[#E8E6DF] bg-[#FAFAF7] text-[13px] text-[#171717] placeholder-[#96958D] focus:outline-none focus:ring-2 focus:ring-[#D8CBB8] transition-all"
                   />
                 </div>
+              </div>
+              {/* Second row - phone */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
                 <div className="relative">
                   <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#96958D]" />
                   <input

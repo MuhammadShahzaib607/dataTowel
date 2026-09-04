@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, Package, ShoppingCart, Newspaper, Settings, Menu, X, LogOut, Users, Bell } from "lucide-react";
@@ -10,6 +10,8 @@ import { logout } from "@/lib/store/authSlice";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import UserAvatar from "@/components/ui/UserAvatar";
 import { siteContent } from "@/lib/data/content";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
 
 const sidebarLinks = [
   {
@@ -57,8 +59,30 @@ export default function AdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, token } = useAppSelector((state) => state.auth);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Fetch unread notification count
+  useEffect(() => {
+    if (!token) return;
+    const fetchCount = () => {
+      fetch(`${API_BASE_URL}/admin/notifications/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => { if (data.success) setUnreadCount(data.count || 0); })
+        .catch(() => {});
+    };
+    fetchCount();
+    const interval = setInterval(fetchCount, 60000);
+    return () => clearInterval(interval);
+  }, [token]);
+
+  // Reset count when navigating to notifications
+  useEffect(() => {
+    if (pathname === "/admin/notifications") setUnreadCount(0);
+  }, [pathname]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -100,8 +124,13 @@ export default function AdminLayout({
                           : "text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717]"
                       }`}
                     >
-                      <link.icon size={16} strokeWidth={1.5} />
-                      {link.label}
+                    <link.icon size={16} strokeWidth={1.5} />
+                    {link.label}
+                    {link.href === "/admin/notifications" && unreadCount > 0 && (
+                      <span className="ml-auto w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
                     </Link>
                   </li>
                 );
@@ -191,6 +220,11 @@ export default function AdminLayout({
                           >
                             <link.icon size={16} strokeWidth={1.5} />
                             {link.label}
+                            {link.href === "/admin/notifications" && unreadCount > 0 && (
+                              <span className="ml-auto w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold">
+                                {unreadCount > 99 ? "99+" : unreadCount}
+                              </span>
+                            )}
                           </Link>
                         </li>
                       );

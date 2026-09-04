@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../models/User.js";
 
 // GET /api/admin/users
@@ -7,6 +8,7 @@ export const getUsers = async (req, res) => {
       page = 1,
       limit = 20,
       search = "",
+      userId = "",
       status = "all",
       sort = "newest",
     } = req.query;
@@ -17,6 +19,21 @@ export const getUsers = async (req, res) => {
 
     // Build query
     const query = {};
+
+    // User ID filter — match against actual User _id
+    if (userId && userId.trim()) {
+      const trimmedUserId = userId.trim();
+      if (mongoose.Types.ObjectId.isValid(trimmedUserId)) {
+        query._id = new mongoose.Types.ObjectId(trimmedUserId);
+      } else {
+        // Invalid ObjectId — return empty results
+        return res.json({
+          success: true,
+          users: [],
+          pagination: { page: pageNum, limit: limitNum, total: 0, totalPages: 0 },
+        });
+      }
+    }
 
     // Search across username, firstName, lastName, email, phone
     if (search && search.trim()) {

@@ -1,6 +1,6 @@
+import mongoose from "mongoose";
 import Order from "../models/Order.js";
-import User from "../models/User.js";
-import { createOrderNotification } from "../controllers/notificationController.js";
+import { createUserNotification, formatStatus } from "./notificationController.js";
 
 function sanitizeOrder(order) {
   return {
@@ -54,15 +54,6 @@ export const createOrder = async (req, res) => {
       notes: notes || "",
     });
 
-    // Create admin notification (fire-and-forget, don't block response)
-    if (customer) {
-      User.findById(customer)
-        .then((user) => createOrderNotification(order, user))
-        .catch(() => {});
-    } else {
-      createOrderNotification(order, null).catch(() => {});
-    }
-
     res.status(201).json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
     console.error("Create order error:", error.message);
@@ -74,7 +65,7 @@ export const createOrder = async (req, res) => {
 export const getOrders = async (req, res) => {
   try {
     const {
-      isActive, search, orderId, customerName, customerEmail,
+      isActive, search, orderId, userId, customerName, customerEmail,
       customerPhone, orderStatus, paymentStatus,
       fromDate, toDate, minAmount, maxAmount,
     } = req.query;
@@ -82,9 +73,35 @@ export const getOrders = async (req, res) => {
 
     if (isActive !== undefined) filter.isActive = isActive === "true";
 
-    // Order ID search (orderNumber field)
+    // User ID filter — matches against the customer (User) ObjectId reference
+    if (userId && userId.trim()) {
+      const trimmedUserId = userId.trim();
+      // Validate ObjectId to prevent CastError
+      if (mongoose.Types.ObjectId.isValid(trimmedUserId)) {
+        filter.customer = new mongoose.Types.ObjectId(trimmedUserId);
+      } else {
+        // Invalid ObjectId — return empty results
+        return res.json({
+          success: true,
+          orders: [],
+          total: 0,
+        });
+      }
+    }
+
+    // Order ID filter — matches against the actual MongoDB _id OR orderNumber
     if (orderId && orderId.trim()) {
-      filter.orderNumber = { $regex: orderId.trim(), $options: "i" };
+      const trimmedOrderId = orderId.trim();
+      if (mongoose.Types.ObjectId.isValid(trimmedOrderId)) {
+        // Valid ObjectId — try matching _id first, fallback to orderNumber
+        filter.$or = [
+          { _id: new mongoose.Types.ObjectId(trimmedOrderId) },
+          { orderNumber: { $regex: trimmedOrderId, $options: "i" } },
+        ];
+      } else {
+        // Not a valid ObjectId — match orderNumber only
+        filter.orderNumber = { $regex: trimmedOrderId, $options: "i" };
+      }
     }
 
     // Customer name search
@@ -279,6 +296,19 @@ export const verifyPayment = async (req, res) => {
       changedBy: String(req.user._id),
     });
     await order.save();
+
+    // Notify user of payment verification
+    if (order.customer) {
+      createUserNotification({
+        type: "payment_verified",
+        title: "Payment Verified",
+        message: `Your payment for order ${order.orderNumber || order._id} has been verified.`,
+        userId: order.customer,
+        orderId: order._id,
+        link: `/dashboard/orders/${order._id}`,
+      }).catch(() => {});
+    }
+
     res.json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
     console.error("Verify payment error:", error.message);
@@ -296,6 +326,7 @@ export const rejectPayment = async (req, res) => {
     if (order.paymentStatus !== "submitted") {
       return res.status(400).json({ success: false, message: "No payment proof to reject" });
     }
+    const { reason } = req.body;
     order.paymentStatus = "rejected";
     order.statusHistory.push({
       status: "payment_rejected",
@@ -303,6 +334,24 @@ export const rejectPayment = async (req, res) => {
       changedBy: String(req.user._id),
     });
     await order.save();
+
+    // Notify user of payment rejection with reason
+    if (order.customer) {
+      const rejectReason = reason ? String(reason).trim() : "";
+      const message = rejectReason
+        ? `Your payment for order ${order.orderNumber || order._id} was rejected. Reason: ${rejectReason}`
+        : `Your payment for order ${order.orderNumber || order._id} was rejected.`;
+      createUserNotification({
+        type: "payment_rejected",
+        title: "Payment Rejected",
+        message,
+        userId: order.customer,
+        orderId: order._id,
+        reason: rejectReason,
+        link: `/dashboard/orders/${order._id}`,
+      }).catch(() => {});
+    }
+
     res.json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
     console.error("Reject payment error:", error.message);
@@ -330,6 +379,7 @@ export const updateOrderStatus = async (req, res) => {
     if (orderStatus === "cancelled" && ["dispatched", "delivered"].includes(order.orderStatus)) {
       return res.status(400).json({ success: false, message: "Cannot cancel after dispatch" });
     }
+    const previousStatus = order.orderStatus;
     order.orderStatus = orderStatus;
     if (orderStatus === "cancelled") order.isActive = false;
     else order.isActive = true;
@@ -339,6 +389,19 @@ export const updateOrderStatus = async (req, res) => {
       changedBy: String(req.user._id),
     });
     await order.save();
+
+    // Notify user if status actually changed
+    if (previousStatus !== orderStatus && order.customer) {
+      createUserNotification({
+        type: "order_status_update",
+        title: "Order Status Updated",
+        message: `Your order status has been updated to: ${formatStatus(orderStatus)}.`,
+        userId: order.customer,
+        orderId: order._id,
+        link: `/dashboard/orders/${order._id}`,
+      }).catch(() => {});
+    }
+
     res.json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
     console.error("Update order status error:", error.message);

@@ -10,6 +10,7 @@ import blogRoutes from "./routes/blogRoutes.js";
 import bankDetailsRoutes from "./routes/bankDetailsRoutes.js";
 import adminUserRoutes from "./routes/adminUserRoutes.js";
 import adminNotificationRoutes from "./routes/adminNotificationRoutes.js";
+import userNotificationRoutes from "./routes/userNotificationRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import dns from 'node:dns';
 
@@ -63,6 +64,7 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/admin/settings", bankDetailsRoutes);
 app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/notifications", adminNotificationRoutes);
+app.use("/api/notifications", userNotificationRoutes);
 app.use("/api/store", publicRoutes);
 
 // Health check
