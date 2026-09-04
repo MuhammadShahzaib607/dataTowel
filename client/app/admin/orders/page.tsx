@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
-  Loader2, Trash2, Eye, X, ShoppingCart, Search, SlidersHorizontal,
+  Loader2, Trash2, Eye, X, ShoppingCart, Search, SlidersHorizontal, RotateCcw,
 } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import CustomDropdown from "@/components/admin/CustomDropdown";
@@ -46,6 +46,8 @@ interface Order {
   bankDetails: BankDetails;
   orderStatus: string;
   isActive: boolean;
+  isDeleted: boolean;
+  deletedAt: string | null;
   createdAt: string;
 }
 
@@ -115,6 +117,7 @@ export default function AdminOrdersPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [showFilters, setShowFilters] = useState(false);
+  const [activeTab, setActiveTab] = useState<"orders" | "trash">("orders");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const authHeaders: Record<string, string> = {
@@ -138,13 +141,15 @@ export default function AdminOrdersPage() {
     return params.toString();
   }, []);
 
-  const fetchOrders = useCallback(async (f: Filters) => {
+  const fetchOrders = useCallback(async (f: Filters, trash = false) => {
     if (!token) return;
     try {
       setLoading(true);
       setError("");
       const qs = buildQueryParams(f);
-      const url = qs ? `${API_BASE_URL}/orders?${qs}` : `${API_BASE_URL}/orders`;
+      const trashParam = trash ? "isDeleted=true" : "";
+      const combinedQs = [qs, trashParam].filter(Boolean).join("&");
+      const url = combinedQs ? `${API_BASE_URL}/orders?${combinedQs}` : `${API_BASE_URL}/orders`;
       const res = await fetch(url, { headers: authHeaders });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
@@ -156,20 +161,20 @@ export default function AdminOrdersPage() {
     }
   }, [token, buildQueryParams]);
 
-  useEffect(() => { fetchOrders(defaultFilters); }, [fetchOrders]);
+  useEffect(() => { fetchOrders(defaultFilters, activeTab === "trash"); }, [fetchOrders, activeTab]);
 
   // Debounced fetch for text inputs
   const debouncedFetch = useCallback((f: Filters) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchOrders(f), 400);
-  }, [fetchOrders]);
+    debounceRef.current = setTimeout(() => fetchOrders(f, activeTab === "trash"), 400);
+  }, [fetchOrders, activeTab]);
 
   const updateFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => {
     const next = { ...filters, [key]: value };
     setFilters(next);
     // For dropdowns, fetch immediately; for text, debounce
     if (key === "orderStatus" || key === "paymentStatus" || key === "fromDate" || key === "toDate") {
-      fetchOrders(next);
+      fetchOrders(next, activeTab === "trash");
     } else {
       debouncedFetch(next);
     }
@@ -178,13 +183,13 @@ export default function AdminOrdersPage() {
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      fetchOrders(filters);
+      fetchOrders(filters, activeTab === "trash");
     }
   };
 
   const clearFilters = () => {
     setFilters(defaultFilters);
-    fetchOrders(defaultFilters);
+    fetchOrders(defaultFilters, activeTab === "trash");
   };
 
   const hasActiveFilters = Object.entries(filters).some(([key, val]) => {
@@ -198,10 +203,26 @@ export default function AdminOrdersPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setDeleteConfirm(null);
-      fetchOrders(filters);
+      fetchOrders(filters, activeTab === "trash");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete");
     }
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/${id}/restore`, { method: "PATCH", headers: authHeaders });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      fetchOrders(filters, true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to restore");
+    }
+  };
+
+  const handleTabChange = (tab: "orders" | "trash") => {
+    setActiveTab(tab);
+    fetchOrders(filters, tab === "trash");
   };
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -234,17 +255,42 @@ export default function AdminOrdersPage() {
             {hasActiveFilters && " (filtered)"}
           </p>
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 h-9 px-4 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
-            showFilters || hasActiveFilters
-              ? "bg-[#171717] text-white"
-              : "bg-white border border-[#E8E6DF] text-[#6F6F69] hover:border-[#D8CBB8]"
-          }`}
-        >
-          <SlidersHorizontal size={15} />
-          Filters
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 bg-[#FAFAF7] rounded-lg border border-[#E8E6DF]/50 p-0.5">
+            <button
+              onClick={() => handleTabChange("orders")}
+              className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all cursor-pointer ${
+                activeTab === "orders"
+                  ? "bg-[#171717] text-white"
+                  : "text-[#6F6F69] hover:text-[#171717]"
+              }`}
+            >
+              Orders
+            </button>
+            <button
+              onClick={() => handleTabChange("trash")}
+              className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all cursor-pointer ${
+                activeTab === "trash"
+                  ? "bg-[#171717] text-white"
+                  : "text-[#6F6F69] hover:text-[#171717]"
+              }`}
+            >
+              <Trash2 size={13} className="inline mr-1" />
+              Trash
+            </button>
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 h-9 px-4 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
+              showFilters || hasActiveFilters
+                ? "bg-[#171717] text-white"
+                : "bg-white border border-[#E8E6DF] text-[#6F6F69] hover:border-[#D8CBB8]"
+            }`}
+          >
+            <SlidersHorizontal size={15} />
+            Filters
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -422,8 +468,8 @@ export default function AdminOrdersPage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setDeleteConfirm(null)} />
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div className="w-full max-w-[380px] bg-white rounded-2xl shadow-2xl p-8 text-center">
-                <h3 className="text-[18px] font-semibold text-[#171717] mb-2">Delete this order?</h3>
-                <p className="text-[13px] text-[#6F6F69] mb-6">This action cannot be undone.</p>
+                <h3 className="text-[18px] font-semibold text-[#171717] mb-2">Move this order to trash?</h3>
+                <p className="text-[13px] text-[#6F6F69] mb-6">You can restore it from the Trash tab later.</p>
                 <div className="flex gap-3">
                   <button onClick={() => setDeleteConfirm(null)} className="flex-1 h-11 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer">Cancel</button>
                   <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 h-11 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600 transition-all cursor-pointer">Delete</button>
@@ -469,7 +515,7 @@ export default function AdminOrdersPage() {
               </thead>
               <tbody>
                 {orders.map((order) => (
-                  <tr key={order.id} className="border-b border-[#E8E6DF]/30 last:border-0 hover:bg-[#FAFAF7] transition-colors">
+                  <tr key={order.id} className="border-b border-[#E8E6DF]/30 last:border-0 hover:bg-[#FAFAF7] transition-colors cursor-pointer" onClick={() => router.push(`/admin/orders/${order.id}`)}>
                     <td className="px-6 py-4">
                       <p className="text-[13px] font-medium text-[#171717]">{order.orderNumber || order.id.slice(0, 8)}</p>
                       <p className="text-[11px] text-[#96958D]">{formatDate(order.createdAt)}</p>
@@ -486,10 +532,14 @@ export default function AdminOrdersPage() {
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${statusColors[order.orderStatus] || ""}`}>{formatStatus(order.orderStatus)}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
                         <button onClick={() => router.push(`/admin/orders/${order.id}`)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-colors cursor-pointer"><Eye size={15} strokeWidth={1.5} /></button>
-                        <button onClick={() => setDeleteConfirm(order.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-red-50 hover:text-red-500 transition-colors cursor-pointer"><Trash2 size={15} strokeWidth={1.5} /></button>
+                        {activeTab === "trash" ? (
+                          <button onClick={() => handleRestore(order.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-green-50 hover:text-green-600 transition-colors cursor-pointer" title="Restore order"><RotateCcw size={15} strokeWidth={1.5} /></button>
+                        ) : (
+                          <button onClick={() => setDeleteConfirm(order.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-red-50 hover:text-red-500 transition-colors cursor-pointer"><Trash2 size={15} strokeWidth={1.5} /></button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -501,7 +551,7 @@ export default function AdminOrdersPage() {
           {/* Mobile */}
           <div className="md:hidden space-y-3">
             {orders.map((order) => (
-              <div key={order.id} className="bg-white rounded-xl border border-[#E8E6DF]/50 p-4 cursor-pointer" onClick={() => router.push(`/admin/orders/${order.id}`)}>
+              <div key={order.id} className="bg-white rounded-xl border border-[#E8E6DF]/50 p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => router.push(`/admin/orders/${order.id}`)}>
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <p className="text-[14px] font-medium text-[#171717]">{order.orderNumber || order.id.slice(0, 8)}</p>
@@ -509,9 +559,17 @@ export default function AdminOrdersPage() {
                   </div>
                   <p className="text-[14px] font-semibold text-[#171717]">\u20A8{order.totalAmount.toLocaleString()}</p>
                 </div>
-                <div className="flex gap-2">
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[order.paymentStatus] || ""}`}>{formatStatus(order.paymentStatus)}</span>
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[order.orderStatus] || ""}`}>{formatStatus(order.orderStatus)}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-2">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[order.paymentStatus] || ""}`}>{formatStatus(order.paymentStatus)}</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[order.orderStatus] || ""}`}>{formatStatus(order.orderStatus)}</span>
+                  </div>
+                  {activeTab === "trash" && (
+                    <button onClick={(e) => { e.stopPropagation(); handleRestore(order.id); }} className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[#E8E6DF] text-[11px] font-medium text-[#6F6F69] hover:bg-green-50 hover:text-green-600 transition-colors cursor-pointer">
+                      <RotateCcw size={10} />
+                      Restore
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

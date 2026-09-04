@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Package, ChevronRight, Search, SlidersHorizontal, X } from "lucide-react";
+import { Loader2, Package, ChevronRight, Search, SlidersHorizontal, X, Trash2, RotateCcw } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import CustomDropdown from "@/components/admin/CustomDropdown";
 
@@ -25,6 +25,7 @@ interface Order {
   totalAmount: number;
   paymentStatus: string;
   orderStatus: string;
+  isDeleted: boolean;
   createdAt: string;
 }
 
@@ -86,9 +87,10 @@ export default function UserOrdersPage() {
   const [error, setError] = useState("");
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [showFilters, setShowFilters] = useState(false);
+  const [activeTab, setActiveTab] = useState<"orders" | "trash">("orders");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchOrders = useCallback(async (f: Filters) => {
+  const fetchOrders = useCallback(async (f: Filters, trash = false) => {
     if (!token) return;
     try {
       setLoading(true);
@@ -99,6 +101,7 @@ export default function UserOrdersPage() {
       if (f.paymentStatus !== "all") params.set("paymentStatus", f.paymentStatus);
       if (f.fromDate) params.set("fromDate", f.fromDate);
       if (f.toDate) params.set("toDate", f.toDate);
+      if (trash) params.set("isDeleted", "true");
       const qs = params.toString();
       const url = qs ? `${API_BASE_URL}/store/orders/mine?${qs}` : `${API_BASE_URL}/store/orders/mine`;
       const res = await fetch(url, {
@@ -115,19 +118,19 @@ export default function UserOrdersPage() {
   }, [token]);
 
   useEffect(() => {
-    fetchOrders(defaultFilters);
-  }, [fetchOrders]);
+    fetchOrders(defaultFilters, activeTab === "trash");
+  }, [fetchOrders, activeTab]);
 
   const debouncedFetch = useCallback((f: Filters) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchOrders(f), 400);
-  }, [fetchOrders]);
+    debounceRef.current = setTimeout(() => fetchOrders(f, activeTab === "trash"), 400);
+  }, [fetchOrders, activeTab]);
 
   const updateFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => {
     const next = { ...filters, [key]: value };
     setFilters(next);
     if (key === "orderStatus" || key === "paymentStatus" || key === "fromDate" || key === "toDate") {
-      fetchOrders(next);
+      fetchOrders(next, activeTab === "trash");
     } else {
       debouncedFetch(next);
     }
@@ -136,13 +139,32 @@ export default function UserOrdersPage() {
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      fetchOrders(filters);
+      fetchOrders(filters, activeTab === "trash");
     }
   };
 
   const clearFilters = () => {
     setFilters(defaultFilters);
-    fetchOrders(defaultFilters);
+    fetchOrders(defaultFilters, activeTab === "trash");
+  };
+
+  const handleRestore = async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/store/orders/${id}/restore`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      fetchOrders(filters, true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to restore");
+    }
+  };
+
+  const handleTabChange = (tab: "orders" | "trash") => {
+    setActiveTab(tab);
+    fetchOrders(filters, tab === "trash");
   };
 
   const hasActiveFilters = Object.entries(filters).some(([key, val]) => {
@@ -177,17 +199,42 @@ export default function UserOrdersPage() {
             {hasActiveFilters ? " (filtered)" : " total"}
           </p>
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 h-9 px-4 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
-            showFilters || hasActiveFilters
-              ? "bg-[#171717] text-white"
-              : "bg-white border border-[#E8E6DF] text-[#6F6F69] hover:border-[#D8CBB8]"
-          }`}
-        >
-          <SlidersHorizontal size={15} />
-          Filters
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 bg-[#FAFAF7] rounded-lg border border-[#E8E6DF]/50 p-0.5">
+            <button
+              onClick={() => handleTabChange("orders")}
+              className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all cursor-pointer ${
+                activeTab === "orders"
+                  ? "bg-[#171717] text-white"
+                  : "text-[#6F6F69] hover:text-[#171717]"
+              }`}
+            >
+              Orders
+            </button>
+            <button
+              onClick={() => handleTabChange("trash")}
+              className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all cursor-pointer ${
+                activeTab === "trash"
+                  ? "bg-[#171717] text-white"
+                  : "text-[#6F6F69] hover:text-[#171717]"
+              }`}
+            >
+              <Trash2 size={13} className="inline mr-1" />
+              Trash
+            </button>
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 h-9 px-4 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
+              showFilters || hasActiveFilters
+                ? "bg-[#171717] text-white"
+                : "bg-white border border-[#E8E6DF] text-[#6F6F69] hover:border-[#D8CBB8]"
+            }`}
+          >
+            <SlidersHorizontal size={15} />
+            Filters
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -316,7 +363,18 @@ export default function UserOrdersPage() {
                     {formatDate(order.createdAt)}
                   </p>
                 </div>
-                <ChevronRight size={18} className="text-[#96958D] mt-1" />
+                <div className="flex items-center gap-2">
+                  {activeTab === "trash" && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRestore(order.id); }}
+                      className="flex items-center gap-1 h-8 px-3 rounded-lg border border-[#E8E6DF] text-[12px] font-medium text-[#6F6F69] hover:bg-green-50 hover:text-green-600 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw size={12} />
+                      Restore
+                    </button>
+                  )}
+                  <ChevronRight size={18} className="text-[#96958D] mt-1" />
+                </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-3 mb-3">

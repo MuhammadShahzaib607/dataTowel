@@ -24,6 +24,9 @@ function sanitizeOrder(order) {
     paymentRejectionReason: order.paymentRejectionReason || "",
     statusHistory: order.statusHistory,
     isActive: order.isActive,
+    isDeleted: order.isDeleted || false,
+    deletedAt: order.deletedAt || null,
+    deletedBy: order.deletedBy || "",
     createdAt: order.createdAt,
     updatedAt: order.updatedAt,
   };
@@ -67,13 +70,20 @@ export const createOrder = async (req, res) => {
 export const getOrders = async (req, res) => {
   try {
     const {
-      isActive, search, orderId, userId, customerName, customerEmail,
+      isActive, isDeleted, search, orderId, userId, customerName, customerEmail,
       customerPhone, orderStatus, paymentStatus,
       fromDate, toDate, minAmount, maxAmount,
     } = req.query;
     const filter = {};
 
     if (isActive !== undefined) filter.isActive = isActive === "true";
+
+    // Soft delete filter: by default exclude deleted orders
+    if (isDeleted !== undefined) {
+      filter.isDeleted = isDeleted === "true";
+    } else {
+      filter.isDeleted = { $ne: true };
+    }
 
     // User ID filter — matches against the customer (User) ObjectId reference
     if (userId && userId.trim()) {
@@ -245,7 +255,7 @@ export const updateOrder = async (req, res) => {
   }
 };
 
-// DELETE /api/orders/:id
+// DELETE /api/orders/:id — soft delete (move to trash)
 export const deleteOrder = async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
@@ -253,10 +263,32 @@ export const deleteOrder = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    await Order.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Order deleted successfully" });
+    order.isDeleted = true;
+    order.deletedAt = new Date();
+    order.deletedBy = String(req.user._id);
+    await order.save();
+    res.json({ success: true, message: "Order moved to trash" });
   } catch (error) {
     console.error("Delete order error:", error.message);
+    res.status(500).json({ success: false, message: "Server error. Please try again." });
+  }
+};
+
+// PATCH /api/orders/:id/restore — restore from trash
+export const restoreOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    order.isDeleted = false;
+    order.deletedAt = null;
+    order.deletedBy = "";
+    await order.save();
+    res.json({ success: true, order: sanitizeOrder(order) });
+  } catch (error) {
+    console.error("Restore order error:", error.message);
     res.status(500).json({ success: false, message: "Server error. Please try again." });
   }
 };
@@ -431,13 +463,13 @@ export const updateOrderStatus = async (req, res) => {
 export const getOrderStats = async (req, res) => {
   try {
     const [totalOrders, activeOrders, deliveredRevenueResult, latestOrders] = await Promise.all([
-      Order.countDocuments(),
-      Order.countDocuments({ isActive: true }),
+      Order.countDocuments({ isDeleted: { $ne: true } }),
+      Order.countDocuments({ isActive: true, isDeleted: { $ne: true } }),
       Order.aggregate([
-        { $match: { orderStatus: "delivered" } },
+        { $match: { orderStatus: "delivered", isDeleted: { $ne: true } } },
         { $group: { _id: null, total: { $sum: "$totalAmount" } } },
       ]),
-      Order.find()
+      Order.find({ isDeleted: { $ne: true } })
         .sort({ createdAt: -1 })
         .limit(6)
         .populate("customer", "username email")

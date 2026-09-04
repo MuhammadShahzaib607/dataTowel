@@ -111,12 +111,26 @@ const orderSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Soft delete / Trash
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    deletedBy: {
+      type: String,
+      default: "",
+    },
   },
   { timestamps: true }
 );
 
 orderSchema.index({ customer: 1, createdAt: -1 });
 orderSchema.index({ isActive: 1, createdAt: -1 });
+orderSchema.index({ isDeleted: 1, createdAt: -1 });
 orderSchema.index({ orderNumber: 1 });
 
 const Order = mongoose.model("Order", orderSchema);

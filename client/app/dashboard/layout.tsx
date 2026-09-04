@@ -12,6 +12,8 @@ import {
   LogOut,
   Home,
   Bell,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
@@ -22,6 +24,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import UserAvatar from "@/components/ui/UserAvatar";
 import WhatsAppButton from "@/components/layout/WhatsAppButton";
 import { siteContent } from "@/lib/data/content";
+import { onUnreadCountChange } from "@/lib/notificationEvents";
 
 const sidebarLinks = [
   {
@@ -61,6 +64,21 @@ export default function UserDashboardLayout({
   const { user, token } = useAppSelector((state) => state.auth);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Initialize collapsed state from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem("dashboard_sidebar_collapsed");
+    if (stored === "true") setSidebarCollapsed(true);
+  }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("dashboard_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
 
   // Fetch unread notification count and re-fetch on pathname change
   useEffect(() => {
@@ -78,31 +96,47 @@ export default function UserDashboardLayout({
     return () => clearInterval(interval);
   }, [token, pathname]);
 
+  // Listen for real-time unread count updates from notification pages
+  useEffect(() => {
+    const unsubscribe = onUnreadCountChange((count) => {
+      setUnreadCount(count);
+    });
+    return unsubscribe;
+  }, []);
+
   const handleLogout = () => {
     dispatch(logout());
     router.push("/");
   };
 
+  const sidebarWidth = sidebarCollapsed ? "w-[72px]" : "w-[260px]";
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex bg-[#FAFAF7]">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex flex-col w-[260px] bg-white border-r border-[#E8E6DF]/50 sticky top-0 h-screen">
+        <aside className={`hidden lg:flex flex-col ${sidebarWidth} bg-white border-r border-[#E8E6DF]/50 sticky top-0 h-screen transition-[width] duration-300 ease-in-out`}>
           {/* Logo */}
-          <div className="h-[72px] flex items-center px-6 border-b border-[#E8E6DF]/50">
-            <Link
-              href="/"
-              className="text-[16px] font-semibold tracking-tight text-[#171717]"
-            >
-              {siteContent.brand.name}
-            </Link>
-            <span className="ml-2 text-[10px] font-medium tracking-[0.1em] uppercase text-[#96958D] bg-[#F2EFE8] px-2 py-0.5 rounded">
-              Account
-            </span>
+          <div className="h-[72px] flex items-center border-b border-[#E8E6DF]/50 transition-all duration-300">
+            <div className={`flex items-center ${sidebarCollapsed ? "justify-center w-full px-2" : "px-6 w-full"}`}>
+              <Link
+                href="/"
+                className="text-[16px] font-semibold tracking-tight text-[#171717] truncate"
+              >
+                {sidebarCollapsed
+                  ? siteContent.brand.name.charAt(0)
+                  : siteContent.brand.name}
+              </Link>
+              {!sidebarCollapsed && (
+                <span className="ml-2 text-[10px] font-medium tracking-[0.1em] uppercase text-[#96958D] bg-[#F2EFE8] px-2 py-0.5 rounded">
+                  Account
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 px-4 py-6">
+          <nav className={`flex-1 py-6 ${sidebarCollapsed ? "px-2" : "px-4"}`}>
             <ul className="space-y-1">
               {sidebarLinks.map((link) => {
                 const isActive = link.exact
@@ -112,18 +146,24 @@ export default function UserDashboardLayout({
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
+                      title={sidebarCollapsed ? link.label : undefined}
+                      className={`flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all cursor-pointer ${
+                        sidebarCollapsed ? "justify-center px-2 py-2.5" : "px-4 py-2.5"
+                      } ${
                         isActive
                           ? "bg-[#171717] text-white"
                           : "text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717]"
                       }`}
                     >
-                      <link.icon size={16} strokeWidth={1.5} />
-                      {link.label}
-                      {link.href === "/dashboard/notifications" && unreadCount > 0 && (
+                      <link.icon size={16} strokeWidth={1.5} className="flex-shrink-0" />
+                      {!sidebarCollapsed && <span className="truncate">{link.label}</span>}
+                      {!sidebarCollapsed && link.href === "/dashboard/notifications" && unreadCount > 0 && (
                         <span className="ml-auto w-5 h-5 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold">
                           {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
+                      )}
+                      {sidebarCollapsed && link.href === "/dashboard/notifications" && unreadCount > 0 && (
+                        <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-red-500" />
                       )}
                     </Link>
                   </li>
@@ -133,42 +173,70 @@ export default function UserDashboardLayout({
           </nav>
 
           {/* Back to Store */}
-          <div className="px-4 mb-2">
+          <div className={`${sidebarCollapsed ? "px-2" : "px-4"} mb-2`}>
             <Link
               href="/products"
-              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-[13px] font-medium text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-all cursor-pointer"
+              title={sidebarCollapsed ? "Back to Store" : undefined}
+              className={`flex items-center gap-3 rounded-lg text-[13px] font-medium text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-all cursor-pointer ${
+                sidebarCollapsed ? "justify-center px-2 py-2.5" : "px-4 py-2.5"
+              }`}
             >
-              <Home size={16} strokeWidth={1.5} />
-              Back to Store
+              <Home size={16} strokeWidth={1.5} className="flex-shrink-0" />
+              {!sidebarCollapsed && "Back to Store"}
             </Link>
           </div>
 
+          {/* Collapse Toggle Button */}
+          <div className={`${sidebarCollapsed ? "px-2" : "px-4"} mb-2`}>
+            <button
+              onClick={toggleSidebar}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className={`flex items-center gap-3 rounded-lg text-[13px] font-medium text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-all cursor-pointer ${
+                sidebarCollapsed ? "justify-center px-2 py-2.5 w-full" : "px-4 py-2.5 w-full"
+              }`}
+            >
+              {sidebarCollapsed ? (
+                <PanelLeftOpen size={16} strokeWidth={1.5} className="flex-shrink-0" />
+              ) : (
+                <>
+                  <PanelLeftClose size={16} strokeWidth={1.5} className="flex-shrink-0" />
+                  <span>Collapse</span>
+                </>
+              )}
+            </button>
+          </div>
+
           {/* User section */}
-          <div className="px-4 py-4 border-t border-[#E8E6DF]/50">
-            <div className="flex items-center gap-3 px-4 py-2">
+          <div className={`${sidebarCollapsed ? "px-2" : "px-4"} py-4 border-t border-[#E8E6DF]/50`}>
+            <div className={`flex items-center gap-3 py-2 ${sidebarCollapsed ? "justify-center px-0" : "px-4"}`}>
               <UserAvatar
                 src={user?.profileImage}
                 name={user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : undefined}
                 username={user?.username}
                 size="sm"
               />
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-[#171717] truncate">
-                  {user?.firstName
-                    ? `${user.firstName} ${user.lastName || ""}`.trim()
-                    : user?.username}
-                </p>
-                <p className="text-[11px] text-[#96958D] truncate">
-                  {user?.email}
-                </p>
-              </div>
+              {!sidebarCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-medium text-[#171717] truncate">
+                    {user?.firstName
+                      ? `${user.firstName} ${user.lastName || ""}`.trim()
+                      : user?.username}
+                  </p>
+                  <p className="text-[11px] text-[#96958D] truncate">
+                    {user?.email}
+                  </p>
+                </div>
+              )}
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-4 py-2.5 mt-1 rounded-lg text-[13px] text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-colors cursor-pointer"
+              title={sidebarCollapsed ? "Logout" : undefined}
+              className={`flex items-center gap-3 mt-1 rounded-lg text-[13px] text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-colors cursor-pointer w-full ${
+                sidebarCollapsed ? "justify-center px-2 py-2.5" : "px-4 py-2.5"
+              }`}
             >
-              <LogOut size={15} strokeWidth={1.5} />
-              Logout
+              <LogOut size={15} strokeWidth={1.5} className="flex-shrink-0" />
+              {!sidebarCollapsed && "Logout"}
             </button>
           </div>
         </aside>

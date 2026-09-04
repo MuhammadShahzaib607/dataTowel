@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Bell, ExternalLink, Check, CheckCheck } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
+import { dispatchUnreadCountChange } from "@/lib/notificationEvents";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
@@ -105,7 +106,9 @@ export default function UserNotificationsPage() {
       });
       if (!res.ok) throw new Error("Failed to mark as read");
       setNotifications((prev) => prev.filter((n) => n.id !== id));
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      const newCount = Math.max(0, unreadCount - 1);
+      setUnreadCount(newCount);
+      dispatchUnreadCountChange(newCount);
       if (activeTab === "unread" && notifications.length === 1 && pagination.page > 1) {
         fetchNotifications(pagination.page - 1, "unread");
       }
@@ -123,6 +126,7 @@ export default function UserNotificationsPage() {
       if (!res.ok) throw new Error("Failed to mark all as read");
       setNotifications([]);
       setUnreadCount(0);
+      dispatchUnreadCountChange(0);
     } catch {
       // silently fail
     }

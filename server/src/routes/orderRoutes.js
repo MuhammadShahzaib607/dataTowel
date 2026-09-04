@@ -5,6 +5,7 @@ import {
   getOrder,
   updateOrder,
   deleteOrder,
+  restoreOrder,
   toggleOrderStatus,
   getOrderStats,
   verifyPayment,
@@ -24,6 +25,7 @@ router.get("/", getOrders);
 router.get("/:id", getOrder);
 router.put("/:id", updateOrder);
 router.delete("/:id", deleteOrder);
+router.patch("/:id/restore", restoreOrder);
 router.patch("/:id/status", toggleOrderStatus);
 router.patch("/:id/verify-payment", verifyPayment);
 router.patch("/:id/reject-payment", rejectPayment);
