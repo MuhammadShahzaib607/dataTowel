@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Package, ShoppingCart, Newspaper, Settings, Menu, X, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Newspaper, Settings, Menu, X, LogOut, Users, Bell } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { logout } from "@/lib/store/authSlice";
@@ -18,19 +18,29 @@ const sidebarLinks = [
     icon: LayoutDashboard,
   },
   {
+    label: "Orders",
+    href: "/admin/orders",
+    icon: ShoppingCart,
+  },
+  {
     label: "Products",
     href: "/admin/products",
     icon: Package,
   },
   {
+    label: "Users",
+    href: "/admin/users",
+    icon: Users,
+  },
+  {
+    label: "Notifications",
+    href: "/admin/notifications",
+    icon: Bell,
+  },
+  {
     label: "Blogs",
     href: "/admin/blogs",
     icon: Newspaper,
-  },
-  {
-    label: "Orders",
-    href: "/admin/orders",
-    icon: ShoppingCart,
   },
   {
     label: "Settings",

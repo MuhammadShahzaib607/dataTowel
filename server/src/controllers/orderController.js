@@ -1,4 +1,6 @@
 import Order from "../models/Order.js";
+import User from "../models/User.js";
+import { createOrderNotification } from "../controllers/notificationController.js";
 
 function sanitizeOrder(order) {
   return {
@@ -51,6 +53,15 @@ export const createOrder = async (req, res) => {
       totalAmount,
       notes: notes || "",
     });
+
+    // Create admin notification (fire-and-forget, don't block response)
+    if (customer) {
+      User.findById(customer)
+        .then((user) => createOrderNotification(order, user))
+        .catch(() => {});
+    } else {
+      createOrderNotification(order, null).catch(() => {});
+    }
 
     res.status(201).json({ success: true, order: sanitizeOrder(order) });
   } catch (error) {
