@@ -5,7 +5,7 @@ import Notification from "../models/Notification.js";
 // GET /api/admin/notifications
 export const getAdminNotifications = async (req, res) => {
   try {
-    const { page = 1, limit = 20, userId } = req.query;
+    const { page = 1, limit = 20, userId, isRead } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
@@ -14,6 +14,8 @@ export const getAdminNotifications = async (req, res) => {
     if (userId && userId.trim()) {
       filter.userId = userId.trim();
     }
+    if (isRead === "true") filter.isRead = true;
+    else if (isRead === "false") filter.isRead = false;
 
     const [notifications, total] = await Promise.all([
       Notification.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
@@ -57,17 +59,37 @@ export const markAdminAllAsRead = async (req, res) => {
   }
 };
 
+// PATCH /api/admin/notifications/:id/read
+export const markAdminNotificationAsRead = async (req, res) => {
+  try {
+    const notification = await Notification.findByIdAndUpdate(
+      req.params.id,
+      { isRead: true },
+      { new: true }
+    );
+    if (!notification) {
+      return res.status(404).json({ success: false, message: "Notification not found" });
+    }
+    res.json({ success: true, notification: { id: notification._id, isRead: notification.isRead } });
+  } catch (error) {
+    console.error("[Notification] Mark admin notification read error:", error.message);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
 // ─── USER APIs ───────────────────────────────────────────
 
 // GET /api/notifications
 export const getUserNotifications = async (req, res) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, isRead } = req.query;
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
     const filter = { userId: req.user._id };
+    if (isRead === "true") filter.isRead = true;
+    else if (isRead === "false") filter.isRead = false;
 
     const [notifications, total] = await Promise.all([
       Notification.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
@@ -107,6 +129,24 @@ export const markUserAllAsRead = async (req, res) => {
     res.json({ success: true, message: "All notifications marked as read" });
   } catch (error) {
     console.error("[Notification] Mark all user notifications read error:", error.message);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+// PATCH /api/notifications/:id/read
+export const markUserNotificationAsRead = async (req, res) => {
+  try {
+    const notification = await Notification.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user._id },
+      { isRead: true },
+      { new: true }
+    );
+    if (!notification) {
+      return res.status(404).json({ success: false, message: "Notification not found" });
+    }
+    res.json({ success: true, notification: { id: notification._id, isRead: notification.isRead } });
+  } catch (error) {
+    console.error("[Notification] Mark user notification read error:", error.message);
     res.status(500).json({ success: false, message: "Server error." });
   }
 };

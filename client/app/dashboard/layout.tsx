@@ -62,7 +62,7 @@ export default function UserDashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch unread notification count
+  // Fetch unread notification count and re-fetch on pathname change
   useEffect(() => {
     if (!token) return;
     const fetchCount = () => {
@@ -74,14 +74,9 @@ export default function UserDashboardLayout({
         .catch(() => {});
     };
     fetchCount();
-    const interval = setInterval(fetchCount, 60000);
+    const interval = setInterval(fetchCount, 30000);
     return () => clearInterval(interval);
-  }, [token]);
-
-  // Reset count when navigating to notifications
-  useEffect(() => {
-    if (pathname === "/dashboard/notifications") setUnreadCount(0);
-  }, [pathname]);
+  }, [token, pathname]);
 
   const handleLogout = () => {
     dispatch(logout());

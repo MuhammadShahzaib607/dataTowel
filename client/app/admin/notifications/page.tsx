@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { motion } from "framer-motion";
 import {
   Bell,
   Copy,
@@ -9,6 +8,7 @@ import {
   ExternalLink,
   X,
   Search,
+  CheckCheck,
 } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import { useRouter } from "next/navigation";
@@ -47,6 +47,8 @@ export default function AdminNotificationsPage() {
   });
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [userIdFilter, setUserIdFilter] = useState("");
+  const [activeTab, setActiveTab] = useState<"unread" | "all">("unread");
+  const [unreadCount, setUnreadCount] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const authHeaders: Record<string, string> = {
@@ -54,8 +56,21 @@ export default function AdminNotificationsPage() {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
+  const fetchUnreadCount = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/notifications/unread-count`, {
+        headers: authHeaders,
+      });
+      const data = await res.json();
+      if (res.ok) setUnreadCount(data.count || 0);
+    } catch {
+      // ignore
+    }
+  }, [token]);
+
   const fetchNotifications = useCallback(
-    async (page: number, userId?: string) => {
+    async (page: number, userId?: string, tab?: "unread" | "all") => {
       if (!token) return;
       try {
         setLoading(true);
@@ -63,6 +78,8 @@ export default function AdminNotificationsPage() {
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("limit", "20");
+        const currentTab = tab || activeTab;
+        if (currentTab === "unread") params.set("isRead", "false");
         if (userId && userId.trim()) params.set("userId", userId.trim());
 
         const res = await fetch(
@@ -79,20 +96,49 @@ export default function AdminNotificationsPage() {
         setLoading(false);
       }
     },
-    [token]
+    [token, activeTab]
   );
 
-  // Auto mark all as read when page loads
   useEffect(() => {
-    fetchNotifications(1, "");
-    if (token) {
-      fetch(`${API_BASE_URL}/admin/notifications/read-all`, {
+    fetchNotifications(1);
+    fetchUnreadCount();
+  }, [fetchNotifications, fetchUnreadCount]);
+
+  const handleTabChange = (tab: "unread" | "all") => {
+    setActiveTab(tab);
+    fetchNotifications(1, userIdFilter, tab);
+  };
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/notifications/${id}/read`, {
         method: "PATCH",
         headers: authHeaders,
-      }).catch(() => {});
+      });
+      if (!res.ok) throw new Error("Failed to mark as read");
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+      if (activeTab === "unread" && notifications.length === 1 && pagination.page > 1) {
+        fetchNotifications(pagination.page - 1, userIdFilter, "unread");
+      }
+    } catch {
+      // silently fail
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetchNotifications, token]);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/notifications/read-all`, {
+        method: "PATCH",
+        headers: authHeaders,
+      });
+      if (!res.ok) throw new Error("Failed to mark all as read");
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch {
+      // silently fail
+    }
+  };
 
   const handleUserIdSearch = (value: string) => {
     setUserIdFilter(value);
@@ -147,8 +193,51 @@ export default function AdminNotificationsPage() {
       <div className="mb-8">
         <h1 className="text-[24px] font-semibold text-[#171717] tracking-tight">Notifications</h1>
         <p className="mt-1.5 text-[14px] text-[#6F6F69]">
-          {pagination.total} notification{pagination.total !== 1 ? "s" : ""}
+          {unreadCount > 0
+            ? `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""}`
+            : "All caught up"}
         </p>
+      </div>
+
+      {/* Tabs + Mark All as Read */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-1 bg-[#FAFAF7] rounded-lg border border-[#E8E6DF]/50 p-0.5">
+          <button
+            onClick={() => handleTabChange("unread")}
+            className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all cursor-pointer ${
+              activeTab === "unread"
+                ? "bg-[#171717] text-white"
+                : "text-[#6F6F69] hover:text-[#171717]"
+            }`}
+          >
+            Unread
+            {unreadCount > 0 && (
+              <span className="ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => handleTabChange("all")}
+            className={`px-4 py-1.5 rounded-md text-[13px] font-medium transition-all cursor-pointer ${
+              activeTab === "all"
+                ? "bg-[#171717] text-white"
+                : "text-[#6F6F69] hover:text-[#171717]"
+            }`}
+          >
+            All
+          </button>
+        </div>
+
+        {unreadCount > 0 && (
+          <button
+            onClick={handleMarkAllAsRead}
+            className="flex items-center gap-2 h-9 px-4 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer"
+          >
+            <CheckCheck size={14} />
+            Mark all as read
+          </button>
+        )}
       </div>
 
       {/* User ID Filter */}
@@ -200,8 +289,14 @@ export default function AdminNotificationsPage() {
       ) : notifications.length === 0 ? (
         <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-16 text-center">
           <Bell size={40} className="text-[#D8CBB8] mx-auto mb-4" />
-          <p className="text-[16px] font-medium text-[#171717] mb-1">No notifications yet</p>
-          <p className="text-[13px] text-[#96958D]">Notifications will appear here when activity occurs.</p>
+          <p className="text-[16px] font-medium text-[#171717] mb-1">
+            {activeTab === "unread" ? "No unread notifications" : "No notifications yet"}
+          </p>
+          <p className="text-[13px] text-[#96958D]">
+            {activeTab === "unread"
+              ? "You're all caught up!"
+              : "Notifications will appear here when activity occurs."}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -253,13 +348,24 @@ export default function AdminNotificationsPage() {
                     </button>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleViewOrder(n)}
-                  className="flex-shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#171717] text-white text-[12px] font-medium hover:bg-[#2a2a2a] transition-colors cursor-pointer"
-                >
-                  <ExternalLink size={12} />
-                  <span className="hidden sm:inline">View Order</span>
-                </button>
+                <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                  <button
+                    onClick={() => handleViewOrder(n)}
+                    className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#171717] text-white text-[12px] font-medium hover:bg-[#2a2a2a] transition-colors cursor-pointer"
+                  >
+                    <ExternalLink size={12} />
+                    <span className="hidden sm:inline">View Order</span>
+                  </button>
+                  {!n.isRead && (
+                    <button
+                      onClick={() => handleMarkAsRead(n.id)}
+                      className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[#E8E6DF] text-[11px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-colors cursor-pointer"
+                    >
+                      <Check size={10} />
+                      Mark as read
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}
