@@ -307,7 +307,8 @@ export default function AdminNotificationsPage() {
           {notifications.map((n) => (
             <div
               key={n.id}
-              className={`bg-white rounded-xl border border-[#E8E6DF]/50 p-5 transition-colors ${
+              onClick={() => handleViewOrder(n)}
+              className={`bg-white rounded-xl border border-[#E8E6DF]/50 p-5 transition-all cursor-pointer hover:shadow-sm hover:border-[#D8CBB8] ${
                 !n.isRead ? "border-l-2 border-l-[#171717]" : ""
               }`}
             >
@@ -331,7 +332,7 @@ export default function AdminNotificationsPage() {
                   <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] text-[#96958D]">
                     <span>{formatTime(n.createdAt)}</span>
                     <button
-                      onClick={() => handleCopy(String(n.userId), `uid-${n.id}`)}
+                      onClick={(e) => { e.stopPropagation(); handleCopy(String(n.userId), `uid-${n.id}`); }}
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAFAF7] border border-[#E8E6DF]/50 hover:bg-[#F2EFE8] transition-colors cursor-pointer"
                     >
                       {copiedField === `uid-${n.id}` ? (
@@ -341,7 +342,7 @@ export default function AdminNotificationsPage() {
                       )}
                     </button>
                     <button
-                      onClick={() => handleCopy(String(n.orderId), `oid-${n.id}`)}
+                      onClick={(e) => { e.stopPropagation(); handleCopy(String(n.orderId), `oid-${n.id}`); }}
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#FAFAF7] border border-[#E8E6DF]/50 hover:bg-[#F2EFE8] transition-colors cursor-pointer"
                     >
                       {copiedField === `oid-${n.id}` ? (
@@ -354,7 +355,7 @@ export default function AdminNotificationsPage() {
                 </div>
                 <div className="flex-shrink-0 flex flex-col items-end gap-2">
                   <button
-                    onClick={() => handleViewOrder(n)}
+                    onClick={(e) => { e.stopPropagation(); handleViewOrder(n); }}
                     className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[#171717] text-white text-[12px] font-medium hover:bg-[#2a2a2a] transition-colors cursor-pointer"
                   >
                     <ExternalLink size={12} />
@@ -362,7 +363,7 @@ export default function AdminNotificationsPage() {
                   </button>
                   {!n.isRead && (
                     <button
-                      onClick={() => handleMarkAsRead(n.id)}
+                      onClick={(e) => { e.stopPropagation(); handleMarkAsRead(n.id); }}
                       className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[#E8E6DF] text-[11px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-colors cursor-pointer"
                     >
                       <Check size={10} />

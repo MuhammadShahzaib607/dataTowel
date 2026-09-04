@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Package, ChevronRight, Search, SlidersHorizontal, X, Trash2, RotateCcw } from "lucide-react";
+import { Loader2, Package, Eye, ShoppingCart, Search, SlidersHorizontal, X, Trash2, RotateCcw } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import CustomDropdown from "@/components/admin/CustomDropdown";
 
@@ -89,6 +89,11 @@ export default function UserOrdersPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState<"orders" | "trash">("orders");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const authHeaders: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 
   const fetchOrders = useCallback(async (f: Filters, trash = false) => {
     if (!token) return;
@@ -179,6 +184,9 @@ export default function UserOrdersPage() {
       day: "numeric",
     });
 
+  const getItemCount = (items: OrderItem[]) =>
+    items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+
   // Build active filter chips
   const activeChips: { label: string; key: keyof Filters }[] = [];
   if (filters.orderId) activeChips.push({ label: `Order ID: ${filters.orderId}`, key: "orderId" });
@@ -195,8 +203,8 @@ export default function UserOrdersPage() {
             My Orders
           </h1>
           <p className="mt-1 text-[14px] text-[#6F6F69]">
-            {orders.length} order{orders.length !== 1 ? "s" : ""}
-            {hasActiveFilters ? " (filtered)" : " total"}
+            {orders.length} order{orders.length !== 1 ? "s" : ""} total
+            {hasActiveFilters && " (filtered)"}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -238,8 +246,9 @@ export default function UserOrdersPage() {
       </div>
 
       {error && (
-        <div className="mb-6 px-4 py-3 rounded-lg bg-red-50 text-red-600 text-[13px]">
-          {error}
+        <div className="mb-6 px-4 py-3 rounded-lg bg-red-50 text-red-600 text-[13px] flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError("")} className="cursor-pointer"><X size={14} /></button>
         </div>
       )}
 
@@ -316,88 +325,105 @@ export default function UserOrdersPage() {
         </div>
       )}
 
+      {/* Orders List */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={24} className="animate-spin text-[#96958D]" />
         </div>
       ) : orders.length === 0 ? (
         <div className="bg-white rounded-xl border border-[#E8E6DF]/50 p-16 text-center">
-          <Package size={40} className="text-[#D8CBB8] mx-auto mb-4" />
+          <ShoppingCart size={40} className="text-[#D8CBB8] mx-auto mb-4" />
           <p className="text-[16px] font-medium text-[#171717] mb-1">
             {hasActiveFilters ? "No orders found matching your filters" : "No orders yet"}
           </p>
           <p className="text-[13px] text-[#96958D] mb-4">
-            {hasActiveFilters ? "Try adjusting your search criteria." : "Place an order to see it here."}
+            {hasActiveFilters ? "Try adjusting your search criteria." : "Orders will appear here once you place them."}
           </p>
           {hasActiveFilters ? (
-            <button
-              onClick={clearFilters}
-              className="h-11 px-6 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer"
-            >
+            <button onClick={clearFilters} className="h-10 px-5 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer">
               Clear Filters
             </button>
           ) : (
-            <button
-              onClick={() => router.push("/products")}
-              className="h-11 px-6 rounded-lg bg-[#171717] text-white text-[13px] font-medium hover:bg-[#2a2a2a] transition-all cursor-pointer"
-            >
+            <button onClick={() => router.push("/products")} className="h-10 px-5 rounded-lg bg-[#171717] text-white text-[13px] font-medium hover:bg-[#2a2a2a] transition-all cursor-pointer">
               Browse Products
             </button>
           )}
         </div>
       ) : (
-        <div className="space-y-3">
-          {orders.map((order) => (
-            <div
-              key={order.id}
-              onClick={() => router.push(`/dashboard/orders/${order.id}`)}
-              className="bg-white rounded-xl border border-[#E8E6DF]/50 p-5 cursor-pointer hover:shadow-md transition-all"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-[15px] font-semibold text-[#171717]">
-                    {order.orderNumber ||
-                      `#${order.id.slice(-6).toUpperCase()}`}
-                  </p>
-                  <p className="text-[12px] text-[#96958D] mt-0.5">
-                    {formatDate(order.createdAt)}
-                  </p>
+        <>
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-white rounded-xl border border-[#E8E6DF]/50 overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#E8E6DF]/50">
+                  <th className="text-left px-6 py-4 text-[11px] font-semibold text-[#96958D] uppercase tracking-wider">Order</th>
+                  <th className="text-left px-6 py-4 text-[11px] font-semibold text-[#96958D] uppercase tracking-wider">Items</th>
+                  <th className="text-left px-6 py-4 text-[11px] font-semibold text-[#96958D] uppercase tracking-wider">Total</th>
+                  <th className="text-left px-6 py-4 text-[11px] font-semibold text-[#96958D] uppercase tracking-wider">Payment</th>
+                  <th className="text-left px-6 py-4 text-[11px] font-semibold text-[#96958D] uppercase tracking-wider">Status</th>
+                  <th className="text-right px-6 py-4 text-[11px] font-semibold text-[#96958D] uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order) => (
+                  <tr key={order.id} className="border-b border-[#E8E6DF]/30 last:border-0 hover:bg-[#FAFAF7] transition-colors cursor-pointer" onClick={() => router.push(`/dashboard/orders/${order.id}`)}>
+                    <td className="px-6 py-4">
+                      <p className="text-[13px] font-medium text-[#171717]">{order.orderNumber || order.id.slice(0, 8)}</p>
+                      <p className="text-[11px] text-[#96958D]">{formatDate(order.createdAt)}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-[13px] text-[#171717]">{getItemCount(order.items)} item{getItemCount(order.items) !== 1 ? "s" : ""}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-[13px] font-medium text-[#171717]">₨{order.totalAmount.toLocaleString()}</p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${statusColors[order.paymentStatus] || ""}`}>{formatStatus(order.paymentStatus)}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${statusColors[order.orderStatus] || ""}`}>{formatStatus(order.orderStatus)}</span>
+                    </td>
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-1">
+                        <button onClick={() => router.push(`/dashboard/orders/${order.id}`)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-colors cursor-pointer"><Eye size={15} strokeWidth={1.5} /></button>
+                        {activeTab === "trash" && (
+                          <button onClick={() => handleRestore(order.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-green-50 hover:text-green-600 transition-colors cursor-pointer" title="Restore order"><RotateCcw size={15} strokeWidth={1.5} /></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden space-y-3">
+            {orders.map((order) => (
+              <div key={order.id} className="bg-white rounded-xl border border-[#E8E6DF]/50 p-4 cursor-pointer hover:shadow-md transition-all" onClick={() => router.push(`/dashboard/orders/${order.id}`)}>
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <p className="text-[14px] font-medium text-[#171717]">{order.orderNumber || order.id.slice(0, 8)}</p>
+                    <p className="text-[12px] text-[#96958D]">{getItemCount(order.items)} item{getItemCount(order.items) !== 1 ? "s" : ""} · {formatDate(order.createdAt)}</p>
+                  </div>
+                  <p className="text-[14px] font-semibold text-[#171717]">₨{order.totalAmount.toLocaleString()}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-2">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[order.paymentStatus] || ""}`}>{formatStatus(order.paymentStatus)}</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[order.orderStatus] || ""}`}>{formatStatus(order.orderStatus)}</span>
+                  </div>
                   {activeTab === "trash" && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleRestore(order.id); }}
-                      className="flex items-center gap-1 h-8 px-3 rounded-lg border border-[#E8E6DF] text-[12px] font-medium text-[#6F6F69] hover:bg-green-50 hover:text-green-600 transition-colors cursor-pointer"
-                    >
-                      <RotateCcw size={12} />
+                    <button onClick={(e) => { e.stopPropagation(); handleRestore(order.id); }} className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[#E8E6DF] text-[11px] font-medium text-[#6F6F69] hover:bg-green-50 hover:text-green-600 transition-colors cursor-pointer">
+                      <RotateCcw size={10} />
                       Restore
                     </button>
                   )}
-                  <ChevronRight size={18} className="text-[#96958D] mt-1" />
                 </div>
               </div>
-
-              <div className="flex flex-wrap items-center gap-3 mb-3">
-                <span className="text-[16px] font-semibold text-[#171717]">
-                  \u20A8{order.totalAmount.toLocaleString()}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <span
-                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium ${statusColors[order.paymentStatus] || "bg-gray-100 text-[#96958D]"}`}
-                >
-                  Payment: {formatStatus(order.paymentStatus)}
-                </span>
-                <span
-                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium ${statusColors[order.orderStatus] || "bg-gray-100 text-[#96958D]"}`}
-                >
-                  Order: {formatStatus(order.orderStatus)}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
