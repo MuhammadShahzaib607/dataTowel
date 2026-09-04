@@ -1,0 +1,718 @@
+================================================================================
+                         DATATOWEL — PROJECT SUMMARY
+================================================================================
+
+DataTowel is a full-stack e-commerce web application for a premium bulk textile
+supply business based in Pakistan. It supplies cotton towels, bedsheets, and
+linens in bulk to hotels, restaurants, gyms, and retailers. The application
+features a public storefront, user dashboard, and admin dashboard with complete
+order management, payment verification, notification system, blog management,
+and soft-delete/trash functionality.
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+- Brand: DataTowel
+- Tagline: "Premium Bulk Textile Supply"
+- Market: Pakistan (bulk/business customers)
+- Currency: PKR (₨)
+- Products: Cotton towels and bedsheets in various sizes and categories
+
+================================================================================
+2. TECHNOLOGY STACK
+================================================================================
+
+Frontend (client/):
+  - Framework: Next.js 15 (App Router)
+  - Language: TypeScript
+  - State Management: Redux Toolkit (with Redux slices for auth, cart, wishlist, UI)
+  - Styling: Tailwind CSS
+  - Animations: Framer Motion
+  - Icons: Lucide React
+  - Authentication: Firebase Client SDK (Google Auth) + custom JWT auth
+  - HTTP Client: Native fetch API with custom wrapper
+
+Backend (server/):
+  - Runtime: Node.js
+  - Framework: Express.js
+  - Language: JavaScript (ES Modules)
+  - Database: MongoDB (Mongoose ODM)
+  - Authentication: JWT (jsonwebtoken) + Firebase Admin SDK (Google token verification)
+  - File Uploads: Multer (memory storage)
+  - Image Hosting: Cloudinary
+  - Email Service: Nodemailer (Gmail SMTP)
+  - Security: bcryptjs for password hashing
+
+================================================================================
+3. PROJECT STRUCTURE
+================================================================================
+
+Root:
+  client/              — Next.js frontend application
+  server/              — Express.js backend API
+  summary.txt          — This file
+
+Frontend (client/):
+  app/
+    layout.tsx         — Root layout with providers
+    page.tsx           — Homepage
+    globals.css        — Global styles
+    about/             — About page
+    contact/           — Contact page
+    faqs/              — FAQs page
+    privacy-policy/    — Privacy policy
+    terms-and-conditions/ — Terms & conditions
+    products/          — Public product listing
+    products/[id]/     — Product detail page
+    cart/              — Shopping cart page
+    checkout/          — Checkout page
+    blogs/             — Public blog listing
+    profile/           — Public profile page (redirects to dashboard)
+    auth/              — Authentication pages
+    dashboard/         — User dashboard
+      layout.tsx       — Dashboard sidebar layout
+      page.tsx         — User dashboard home
+      orders/          — User orders list
+      orders/[id]/     — User order detail
+      notifications/   — User notifications
+      profile/         — User profile editor
+    admin/             — Admin dashboard
+      layout.tsx       — Admin sidebar layout
+      dashboard/       — Admin dashboard home (stats)
+      orders/          — Admin orders list
+      orders/[id]/     — Admin order detail
+      products/        — Admin product management
+      products/[id]/   — Admin product editor
+      users/           — Admin user management
+      notifications/   — Admin notifications
+      blogs/           — Admin blog management
+      settings/        — Admin bank details & delivery settings
+  components/
+    about/             — About page sections
+    admin/             — Shared admin components (CustomDropdown)
+    auth/              — Auth modal, ProtectedRoute
+    contact/           — Contact page sections
+    home/              — Homepage sections
+    layout/            — Navbar, Footer, MobileMenu, WhatsAppButton, LayoutShell
+    legal/             — Legal page layout
+    profile/           — Profile form component
+    providers/         — Redux Provider, AuthInitializer
+    ui/                — CartDrawer, CityDropdown, UserAvatar
+  lib/
+    api.ts             — API request helpers
+    firebase.ts        — Firebase client config
+    hooks.ts           — Redux typed hooks
+    notificationEvents.ts — Event bus for notification count sync
+    data/
+      content.ts       — Site content/copy
+      categories.ts    — Product categories & sizes
+      products.ts      — Product data
+    store/
+      index.ts         — Redux store config
+      authSlice.ts     — Authentication state
+      cartSlice.ts     — Shopping cart state
+      wishlistSlice.ts — Wishlist state
+      uiSlice.ts       — UI state (modals, menus)
+
+Backend (server/):
+  src/
+    server.js          — Express app entry point
+    config/
+      db.js            — MongoDB connection
+      cloudinary.js    — Cloudinary config
+      firebaseAdmin.js — Firebase Admin SDK init
+    middleware/
+      authMiddleware.js      — JWT auth (any logged-in user)
+      adminAuthMiddleware.js — JWT auth (admin only)
+      upload.js              — Multer config (memory storage, 5MB limit, JPEG/PNG/WebP)
+    models/
+      User.js           — User model
+      Product.js        — Product model
+      Order.js          — Order model
+      Notification.js   — Notification model
+      Blog.js           — Blog model
+      BankDetails.js    — Bank details (singleton)
+      DeliverySettings.js — Delivery settings (singleton)
+    controllers/
+      authController.js          — Register, login, Google auth, email verification
+      userController.js          — Profile CRUD, profile image upload
+      orderController.js         — Admin order CRUD, status, payment verify/reject
+      productController.js       — Admin product CRUD
+      blogController.js          — Admin blog CRUD
+      adminUserController.js     — Admin user management
+      notificationController.js  — Notification CRUD, helper functions
+      bankDetailsController.js   — Admin bank details CRUD
+      deliverySettingsController.js — Delivery charge calculation
+    routes/
+      authRoutes.js              — /api/auth/*
+      userRoutes.js              — /api/users/*
+      orderRoutes.js             — /api/orders/* (admin)
+      productRoutes.js           — /api/products/* (admin)
+      blogRoutes.js              — /api/blogs/* (admin)
+      adminUserRoutes.js         — /api/admin/users/*
+      adminNotificationRoutes.js — /api/admin/notifications/*
+      userNotificationRoutes.js  — /api/notifications/*
+      bankDetailsRoutes.js       — /api/admin/settings/bank-details
+      publicRoutes.js            — /api/store/* (public & authenticated user)
+    services/
+      emailService.js            — Nodemailer email sending
+
+================================================================================
+4. DATABASE MODELS
+================================================================================
+
+User
+  - username (String, required)
+  - email (String, required, unique, lowercase)
+  - password (String, optional for Google users, hashed with bcrypt)
+  - isAdmin (Boolean, default false)
+  - isVerified (Boolean, default false)
+  - firebaseUid (String, unique, sparse — for Google auth)
+  - authProvider (String: "local" | "google")
+  - firstName, lastName, phone, city, country (String, profile fields)
+  - profileImage (String, URL)
+  - emailVerificationOtpHash, emailVerificationOtpExpires (for email verification)
+  - timestamps (createdAt, updatedAt)
+
+Product
+  - name (String)
+  - description (String, maxlength 2000)
+  - category (String — "Towels" or "Bedsheets")
+  - subCategory (String — e.g. "Bath Towel", "Single Bedsheet")
+  - sizes ([String] — array of available sizes)
+  - price (Number, nullable)
+  - discountedPrice (Number, nullable)
+  - images ([{ url, publicId }] — Cloudinary images)
+  - isActive (Boolean, default true)
+  - timestamps
+  - Indexes: isActive+category, text on name
+
+Order
+  - orderNumber (String, unique — format "DT-XXXXX")
+  - customer (ObjectId → User)
+  - customerName, customerEmail (String)
+  - items ([{ product, name, size, quantity, price, total }])
+  - subtotal (Number)
+  - deliveryCharge (Number)
+  - totalAmount (Number)
+  - city (String)
+  - paymentMethod (String: "manual_transfer" | "cod")
+  - notes (String, maxlength 500)
+  - paymentStatus (String: "pending" | "submitted" | "verified" | "rejected")
+  - paymentProof ({ imageUrl, imagePublicId, submittedAt })
+  - bankDetails ({ accountTitle, bankName, accountNumber, iban }) — snapshot at order time
+  - orderStatus (String: "pending_payment" | "processing" | "dispatched" | "delivered" | "cancelled")
+  - statusHistory ([{ status, changedAt, changedBy }])
+  - cancellationReason (String)
+  - paymentRejectionReason (String)
+  - isActive (Boolean, default true)
+  - isDeleted (Boolean, default false — soft delete)
+  - deletedAt (Date, nullable)
+  - deletedBy (String)
+  - timestamps
+  - Indexes: customer+createdAt, isActive+createdAt, isDeleted+createdAt, orderNumber
+
+Notification
+  - type (String, indexed — e.g. "new_order", "payment_verified", "order_status_update")
+  - title (String, required)
+  - message (String, required)
+  - userId (ObjectId → User, required)
+  - orderId (ObjectId → Order, required)
+  - reason (String)
+  - link (String — URL path to navigate to)
+  - isRead (Boolean, default false, indexed)
+  - timestamps
+  - Indexes: createdAt, userId+isRead+createdAt, orderId+type
+
+Blog
+  - title (String, maxlength 300)
+  - excerpt (String, maxlength 500)
+  - content (String, maxlength 50000)
+  - category (String)
+  - images ([{ url, publicId }])
+  - isActive (Boolean, default true)
+  - timestamps
+  - Indexes: isActive+createdAt, category, text on title+content
+
+BankDetails (singleton — only one record allowed)
+  - accountTitle, bankName, accountNumber, iban (String)
+  - timestamps
+
+DeliverySettings (singleton — only one record allowed)
+  - karachiCharge (Number, default 300)
+  - outsideKarachiCharge (Number, default 500)
+  - timestamps
+
+================================================================================
+5. AUTHENTICATION & AUTHORIZATION
+================================================================================
+
+Registration Flow:
+  1. User submits username, email, password
+  2. Server creates user with isVerified=false
+  3. Server generates 6-digit OTP, hashes it with SHA-256, stores hash + expiry (10 min)
+  4. Server sends verification email via Gmail SMTP (Nodemailer)
+  5. User submits OTP → server compares hash → sets isVerified=true → returns JWT
+
+Login Flow:
+  1. User submits email + password
+  2. Server verifies credentials and isVerified status
+  3. If email not verified, returns 403 with code "EMAIL_NOT_VERIFIED"
+  4. On success, returns JWT (expires in 7 days by default)
+
+Google Login Flow:
+  1. Client uses Firebase Auth to get Google ID token
+  2. Client sends ID token to server
+  3. Server verifies token with Firebase Admin SDK
+  4. Server finds or creates user by firebaseUid or email
+  5. Returns JWT
+
+Middleware:
+  - authMiddleware: Verifies JWT, attaches user to req.user (any logged-in user)
+  - adminAuthMiddleware: Verifies JWT + checks user.isAdmin (admin only)
+
+Password Security:
+  - Passwords hashed with bcrypt (salt rounds: 10)
+  - Password field has select: false (excluded from queries by default)
+
+JWT:
+  - Signed with JWT_SECRET
+  - Stored in localStorage on client as "datatowel_token"
+  - Auth state persisted via AuthInitializer + restoreUser thunk
+
+================================================================================
+6. FRONTEND FEATURES
+================================================================================
+
+Homepage:
+  - Hero section with video background
+  - Product collection showcase
+  - Feature highlights (Premium Cotton, Absorbency, GSM, Durability)
+  - Editorial/brand story section
+  - Testimonials
+  - Instagram grid
+  - Newsletter signup
+  - Social proof sections
+
+Navigation (Navbar):
+  - Fixed top navigation with scroll-based transparency on hero pages
+  - Desktop: logo, nav links, cart icon with count badge, auth/profile buttons
+  - Mobile: hamburger menu (MobileMenu component)
+  - Profile dropdown (when authenticated): Profile, Dashboard, Logout
+  - Cart drawer (CartDrawer) — slide-in from right
+  - WhatsApp floating button (fixed bottom-right)
+
+Products:
+  - Public product listing at /products
+  - Product detail page at /products/[id]
+  - Product images (Cloudinary-hosted)
+  - Size selection
+  - Add to cart functionality
+
+Cart:
+  - Redux-persisted cart (localStorage)
+  - CartDrawer (sidebar overlay)
+  - Cart page at /cart
+  - Quantity management
+  - Remove items
+  - Total calculation
+
+Checkout:
+  - Customer information form (name, email, phone, city, address, notes)
+  - City selection via CityDropdown (searchable)
+  - Payment method selection (Manual Bank Transfer; COD disabled)
+  - Bank details display (fetched from admin settings)
+  - Delivery charge calculation (Karachi vs Outside Karachi)
+  - Order summary sidebar
+  - Place order → creates order via API → clears cart
+  - Order success screen with "View My Orders" / "Continue Shopping"
+
+User Dashboard:
+  - Collapsible sidebar (desktop, persisted in localStorage)
+  - Sidebar navigation: Dashboard, Orders, Notifications, Profile
+  - Notification unread count badge (real-time via event bus)
+  - Back to Store link
+  - User info + Logout
+  - Mobile: slide-in sidebar with hamburger menu
+  - Protected route (requires authentication)
+
+Admin Dashboard:
+  - Collapsible sidebar (desktop, persisted in localStorage)
+  - Sidebar navigation: Dashboard, Orders, Products, Users, Notifications, Blogs, Settings
+  - Notification unread count badge (real-time via event bus)
+  - Protected route (requires admin privileges)
+  - Mobile: slide-in sidebar with hamburger menu
+
+Admin Dashboard Home:
+  - Stat cards: Total Products, Total Orders, Revenue
+  - Latest Orders table with search and filters
+  - Quick filters: order status, payment status
+
+Admin Products:
+  - Product list with table (desktop) / cards (mobile)
+  - Create/Edit product with categories, subcategories, sizes, pricing, images
+  - Product image upload via Cloudinary
+  - Toggle active/inactive
+  - Search and filter
+
+Admin Orders:
+  - Orders/Trash tabs
+  - Desktop: table layout; Mobile: card layout
+  - Full filter panel: Order ID, User ID, customer name, email, phone, order status, payment status, date range, amount range
+  - Active filter chips
+  - Actions: View, Delete (soft delete to trash)
+  - Trash: Restore orders
+
+Admin Users:
+  - User list with table
+  - View user details
+  - Search by username/email
+
+Admin Blogs:
+  - Blog list with images
+  - Create/Edit blog with title, excerpt, content, category, images
+  - Image upload via Cloudinary
+  - Toggle active/inactive
+
+Admin Notifications:
+  - Notifications/Unread tabs
+  - User ID filter
+  - Mark as read / Mark all as read
+  - Click notification card → navigates to order
+  - Copy User ID / Copy Order ID buttons
+  - Pagination
+
+Admin Settings:
+  - Bank details management (account title, bank name, account number, IBAN)
+  - Delivery charges management (Karachi rate, Outside Karachi rate)
+
+User Orders:
+  - Orders/Trash tabs (matching admin UI)
+  - Desktop: table layout; Mobile: card layout
+  - Filters: Order ID, order status, payment status, date range
+  - Actions: View, Trash (soft delete with confirmation modal)
+  - Trash: Restore orders
+  - Entire order card/row is clickable
+
+User Notifications:
+  - Unread/All tabs
+  - Mark as read / Mark all as read
+  - Click notification card → navigates to order
+  - Pagination
+  - Entire notification card is clickable
+
+User Profile:
+  - Profile form (first name, last name, phone, city, country)
+  - Profile image upload (Cloudinary)
+
+Public Pages:
+  - About page (multi-section: story, who we serve, what we supply, why DataTowel, quality materials, Pakistan coverage)
+  - Contact page (hero, info form, why contact, location, CTA)
+  - FAQs page
+  - Privacy Policy
+  - Terms & Conditions
+  - Blogs listing
+
+Responsive Design:
+  - Mobile-first approach
+  - Desktop: full sidebar, table layouts
+  - Mobile: hamburger menu, card layouts, adapted spacing
+  - No horizontal overflow
+
+================================================================================
+7. API / BACKEND DOCUMENTATION
+================================================================================
+
+Authentication (/api/auth):
+  POST /api/auth/register     — Register new user (sends verification email)
+  POST /api/auth/login        — Login with email/password
+  POST /api/auth/google       — Login with Google (Firebase ID token)
+  POST /api/auth/verify-email — Verify email with OTP
+  POST /api/auth/resend-otp   — Resend verification OTP
+  GET  /api/auth/me           — Get current user (auth required)
+
+User Profile (/api/users):
+  GET  /api/users/profile           — Get profile (auth required)
+  PUT  /api/users/profile           — Update profile (auth required)
+  POST /api/users/profile/image     — Upload profile image (auth required, multipart)
+
+Products — Admin (/api/products):
+  GET    /api/products              — List all products (admin auth)
+  POST   /api/products              — Create product (admin auth)
+  GET    /api/products/:id          — Get product by ID (admin auth)
+  PUT    /api/products/:id          — Update product (admin auth)
+  DELETE /api/products/:id          — Delete product (admin auth)
+
+Orders — Admin (/api/orders):
+  GET    /api/orders/stats          — Get order statistics (admin auth)
+  POST   /api/orders                — Create order (admin auth)
+  GET    /api/orders                — List orders with filters (admin auth)
+  GET    /api/orders/:id            — Get order by ID (admin auth)
+  PUT    /api/orders/:id            — Update order (admin auth)
+  DELETE /api/orders/:id            — Soft delete order (admin auth)
+  PATCH  /api/orders/:id/restore    — Restore from trash (admin auth)
+  PATCH  /api/orders/:id/status     — Toggle active status (admin auth)
+  PATCH  /api/orders/:id/verify-payment  — Verify payment (admin auth)
+  PATCH  /api/orders/:id/reject-payment  — Reject payment with reason (admin auth)
+  PATCH  /api/orders/:id/order-status    — Update order status (admin auth)
+
+Orders — User (/api/store):
+  POST /api/store/orders                  — Place order (auth required)
+  GET  /api/store/orders/mine             — Get user's orders (auth required)
+  GET  /api/store/orders/:id              — Get single order (auth, owner/admin)
+  POST /api/store/orders/:id/payment-proof — Upload payment screenshot (auth, owner)
+  POST /api/store/orders/:id/cancel       — Cancel order with reason (auth, owner)
+  POST /api/store/orders/:id/trash        — Soft delete order (auth, owner)
+  POST /api/store/orders/:id/restore      — Restore from trash (auth, owner)
+
+Blogs — Admin (/api/blogs):
+  GET    /api/blogs              — List all blogs (admin auth)
+  POST   /api/blogs              — Create blog (admin auth)
+  GET    /api/blogs/:id          — Get blog by ID (admin auth)
+  PUT    /api/blogs/:id          — Update blog (admin auth)
+  DELETE /api/blogs/:id          — Delete blog (admin auth)
+
+Public (/api/store):
+  GET /api/store/products               — List active products
+  GET /api/store/products/:id           — Get active product
+  GET /api/store/blogs                  — List active blogs
+  GET /api/store/blogs/:id              — Get active blog
+  GET /api/store/settings/delivery      — Get delivery charges
+  GET /api/store/settings/bank-details  — Get bank details
+
+Notifications — Admin (/api/admin/notifications):
+  GET    /api/admin/notifications              — List all notifications (admin auth)
+  GET    /api/admin/notifications/unread-count — Get unread count (admin auth)
+  PATCH  /api/admin/notifications/read-all     — Mark all as read (admin auth)
+  PATCH  /api/admin/notifications/:id/read     — Mark one as read (admin auth)
+
+Notifications — User (/api/notifications):
+  GET    /api/notifications              — List user's notifications (auth required)
+  GET    /api/notifications/unread-count — Get user's unread count (auth required)
+  PATCH  /api/notifications/read-all     — Mark all as read (auth required)
+  PATCH  /api/notifications/:id/read     — Mark one as read (auth required)
+
+Admin Users (/api/admin/users):
+  GET /api/admin/users              — List all users (admin auth)
+  GET /api/admin/users/:id          — Get user by ID (admin auth)
+
+Admin Settings (/api/admin/settings):
+  GET    /api/admin/settings/bank-details — Get bank details (admin auth)
+  POST   /api/admin/settings/bank-details — Create bank details (admin auth)
+  PUT    /api/admin/settings/bank-details — Update bank details (admin auth)
+  GET    /api/admin/settings/delivery     — Get delivery settings (admin auth)
+  PUT    /api/admin/settings/delivery     — Update delivery settings (admin auth)
+
+Health Check:
+  GET /api/health — Server health check
+
+================================================================================
+8. BUSINESS FLOWS
+================================================================================
+
+Customer Purchase Flow:
+  1. Browse products at /products
+  2. View product details, select size
+  3. Add to cart (persisted in localStorage)
+  4. View cart (CartDrawer or /cart)
+  5. Proceed to checkout (/checkout)
+  6. Fill customer info (name, email, phone, city, address)
+  7. Select city (Karachi vs other — affects delivery charge)
+  8. Select payment method (Manual Bank Transfer)
+  9. View bank details, make transfer
+  10. Place order → order created with paymentStatus: "pending", orderStatus: "pending_payment"
+  11. After placing order, upload payment screenshot from order details page
+  12. Order paymentStatus changes to "submitted"
+  13. Admin reviews and verifies/rejects payment
+  14. If verified: orderStatus moves to "processing"
+  15. Admin updates status: processing → dispatched → delivered
+  16. User receives notifications at each status change
+
+Admin Management Flow:
+  1. Login as admin
+  2. View dashboard with stats (products, orders, revenue)
+  3. Manage products (CRUD, categories, images, pricing)
+  4. Manage orders (view, filter, verify/reject payments, update status)
+  5. Manage users (view list, details)
+  6. Manage blogs (CRUD, images)
+  7. Manage notifications (view, mark read)
+  8. Configure settings (bank details, delivery charges)
+
+Order Cancellation Flow:
+  1. User views order details
+  2. Clicks "Cancel Order" (only before dispatched)
+  3. Provides cancellation reason (required)
+  4. Order status → "cancelled", isActive → false
+  5. Admin receives notification
+
+Payment Verification Flow:
+  1. User uploads payment screenshot
+  2. Image uploaded to Cloudinary, stored on order
+  3. paymentStatus → "submitted"
+  4. Admin receives notification
+  5. Admin views order, sees screenshot
+  6. Admin verifies → paymentStatus: "verified", orderStatus: "processing"
+     OR Admin rejects → paymentStatus: "rejected", with rejection reason
+  7. User receives notification of verification/rejection
+
+Soft Delete / Trash Flow:
+  1. User/Admin clicks "Move to Trash" on an order
+  2. Confirmation dialog appears
+  3. On confirm: isDeleted=true, deletedAt=now, deletedBy=userId
+  4. Order disappears from normal list
+  5. Order appears in Trash tab
+  6. User/Admin can Restore → isDeleted=false, deletedAt=null
+  7. Order returns to normal list
+  8. Backend always filters out deleted orders by default
+
+Email Verification Flow:
+  1. User registers with email/password
+  2. 6-digit OTP generated, hashed with SHA-256, stored with 10-minute expiry
+  3. Verification email sent via Gmail SMTP
+  4. User enters OTP
+  5. Server compares hash → marks user as verified → returns JWT
+  6. User can resend OTP (invalidates previous)
+
+================================================================================
+9. IMPORTANT BUSINESS RULES & BEHAVIOR
+================================================================================
+
+User Permissions:
+  - Users can only view/edit their own profile
+  - Users can only view their own orders
+  - Users can only cancel their own orders (before dispatched)
+  - Users can only upload payment proofs for their own orders
+  - Users can only soft-delete/restore their own orders
+  - Users cannot access admin routes
+
+Admin Permissions:
+  - Admin can manage all products (CRUD)
+  - Admin can manage all orders (view, update status, verify/reject payments, soft delete)
+  - Admin can manage all users (view)
+  - Admin can manage all blogs (CRUD)
+  - Admin can manage notifications
+  - Admin can configure bank details and delivery charges
+  - Admin can soft-delete and restore any order
+
+Order Cancellation Rules:
+  - Can only cancel before "dispatched" status
+  - Cancellation reason is required
+  - Order isActive → false on cancellation
+  - Admin receives notification
+
+Payment Rules:
+  - Payment screenshot upload only before "verified" or "cancelled"
+  - Payment rejection requires a reason
+  - Cannot move to processing/dispatched/delivered without verified payment
+  - Cannot cancel after dispatched
+
+Delivery Charge Rules:
+  - Karachi: configurable rate (default ₨300)
+  - Outside Karachi: configurable rate (default ₨500)
+  - Delivery charge calculated server-side based on selected city
+  - City selection via searchable dropdown
+
+Notification Behavior:
+  - Admin notifications: created for new orders, payment uploads, cancellations
+  - User notifications: created for payment verification, rejection, status updates
+  - Notifications include order link for quick navigation
+  - Real-time unread count sync via custom event bus (window events)
+  - 30-second polling for unread count updates
+  - Notification cards are clickable (navigate to order)
+
+Soft-Delete / Trash Behavior:
+  - Orders are never permanently deleted
+  - isDeleted=true, deletedAt=timestamp, deletedBy=userId
+  - Normal queries exclude deleted orders by default (isDeleted: {$ne: true})
+  - Trash tab shows only deleted orders (isDeleted=true)
+  - Restore sets isDeleted=false, deletedAt=null, deletedBy=""
+  - Both admin and users have their own Trash tabs
+  - Backend enforces ownership on user-side trash/restore
+
+Product Rules:
+  - Products have categories (Towels, Bedsheets) and subcategories
+  - Products can have multiple sizes
+  - Products can have multiple images (Cloudinary)
+  - Products support discounted pricing
+  - isActive flag controls public visibility
+
+Notification Unread Count:
+  - Sidebar badge shows unread count
+  - Updates instantly via event bus when notifications are marked as read
+  - Works across admin and user dashboards
+
+Sidebar Collapse:
+  - Both admin and user dashboards support sidebar collapse/expand
+  - State persisted in localStorage
+  - Collapsed: icons only, tooltips on hover
+  - Expanded: icons + labels
+  - Smooth CSS transition
+
+Clickable Lists:
+  - Order list items (admin + user) are fully clickable
+  - Notification list items (admin + user) are fully clickable
+  - Action buttons inside use e.stopPropagation() to prevent navigation conflicts
+
+================================================================================
+10. IMAGE HANDLING
+================================================================================
+
+- All images uploaded via Multer (memory storage, 5MB limit)
+- Allowed types: JPEG, PNG, WebP
+- Uploaded to Cloudinary with transformations:
+  - Products: folder "datatowel/products", format webp, quality auto
+  - Blogs: folder "datatowel/blogs", format webp, quality auto
+  - Profiles: folder "datatowel/profiles", 500x500 crop, face gravity, format webp
+  - Payments: folder "datatowel/payments", format webp, quality auto
+- Old images deleted from Cloudinary on replacement/delete
+- Public IDs stored for cleanup
+
+================================================================================
+11. ENVIRONMENT VARIABLES
+================================================================================
+
+Server (.env):
+  MONGODB_URI              — MongoDB connection string
+  JWT_SECRET               — Secret key for JWT signing
+  JWT_EXPIRES_IN           — JWT expiration (e.g., "7d")
+  PORT                     — Server port (default 5000)
+  CLIENT_URL               — Frontend URL(s), comma-separated for CORS
+  CLOUDINARY_CLOUD_NAME    — Cloudinary cloud name
+  CLOUDINARY_API_KEY       — Cloudinary API key
+  CLOUDINARY_API_SECRET    — Cloudinary API secret
+  FIREBASE_PROJECT_ID      — Firebase project ID
+  FIREBASE_CLIENT_EMAIL    — Firebase client email
+  FIREBASE_PRIVATE_KEY     — Firebase private key (escaped newlines)
+  EMAIL_USER               — Gmail address for sending emails
+  EMAIL_APP_PASSWORD       — Gmail app password
+
+Client (.env.local):
+  NEXT_PUBLIC_API_BASE_URL         — Backend API base URL
+  NEXT_PUBLIC_FIREBASE_API_KEY     — Firebase API key
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN — Firebase auth domain
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID  — Firebase project ID
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET — Firebase storage bucket
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID — Firebase messaging sender ID
+  NEXT_PUBLIC_FIREBASE_APP_ID      — Firebase app ID
+
+================================================================================
+12. KEY TECHNICAL DETAILS
+================================================================================
+
+- CORS: Configurable via CLIENT_URL (comma-separated origins)
+- DNS: Custom DNS servers (8.8.8.8, 1.1.1.1) set in development
+- Password hashing: bcrypt with 10 salt rounds
+- OTP: 6-digit crypto.randomBytes, SHA-256 hashed, 10-minute expiry
+- Order numbers: Sequential "DT-XXXXX" format (10001 + count)
+- Cart persistence: localStorage (datatowel_cart key)
+- Auth persistence: localStorage (datatowel_token key)
+- Redux store: Client-side only (configureStore with cart, wishlist, ui, auth slices)
+- Notification sync: Custom window event (unread-count-change) for real-time badge updates
+- Framer Motion: Used for page transitions, modals, dropdowns, sidebar animations
+- Responsive breakpoints: sm (640px), md (768px), lg (1024px)
+- Design system: Warm neutral palette (#FAFAF7 bg, #171717 text, #E8E6DF borders, #6F6F69 secondary text, #96958D muted text, #D8CBB8 accents)
+
+================================================================================
+                            END OF SUMMARY
+================================================================================

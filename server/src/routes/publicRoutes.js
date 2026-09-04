@@ -375,6 +375,27 @@ router.post("/orders/:id/cancel", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/store/orders/:id/trash — soft delete order (auth required, owner only)
+router.post("/orders/:id/trash", authMiddleware, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    if (String(order.customer) !== String(req.user._id)) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+    order.isDeleted = true;
+    order.deletedAt = new Date();
+    order.deletedBy = String(req.user._id);
+    await order.save();
+    res.json({ success: true, message: "Order moved to trash" });
+  } catch (error) {
+    console.error("Trash order error:", error.message);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+});
+
 // POST /api/store/orders/:id/restore — restore order from trash (auth required, owner only)
 router.post("/orders/:id/restore", authMiddleware, async (req, res) => {
   try {

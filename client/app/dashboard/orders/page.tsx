@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, Package, Eye, ShoppingCart, Search, SlidersHorizontal, X, Trash2, RotateCcw } from "lucide-react";
 import { useAppSelector } from "@/lib/hooks";
 import CustomDropdown from "@/components/admin/CustomDropdown";
@@ -88,6 +89,7 @@ export default function UserOrdersPage() {
   const [filters, setFilters] = useState<Filters>(defaultFilters);
   const [showFilters, setShowFilters] = useState(false);
   const [activeTab, setActiveTab] = useState<"orders" | "trash">("orders");
+  const [trashConfirm, setTrashConfirm] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const authHeaders: Record<string, string> = {
@@ -151,6 +153,21 @@ export default function UserOrdersPage() {
   const clearFilters = () => {
     setFilters(defaultFilters);
     fetchOrders(defaultFilters, activeTab === "trash");
+  };
+
+  const handleTrash = async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/store/orders/${id}/trash`, {
+        method: "POST",
+        headers: authHeaders,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      setTrashConfirm(null);
+      fetchOrders(filters, false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to move to trash");
+    }
   };
 
   const handleRestore = async (id: string) => {
@@ -251,6 +268,25 @@ export default function UserOrdersPage() {
           <button onClick={() => setError("")} className="cursor-pointer"><X size={14} /></button>
         </div>
       )}
+
+      {/* Trash Confirmation */}
+      <AnimatePresence>
+        {trashConfirm && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50" onClick={() => setTrashConfirm(null)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="w-full max-w-[380px] bg-white rounded-2xl shadow-2xl p-8 text-center">
+                <h3 className="text-[18px] font-semibold text-[#171717] mb-2">Move order to trash?</h3>
+                <p className="text-[13px] text-[#6F6F69] mb-6">This order will be moved to Trash and can be restored later.</p>
+                <div className="flex gap-3">
+                  <button onClick={() => setTrashConfirm(null)} className="flex-1 h-11 rounded-lg border border-[#E8E6DF] text-[13px] font-medium text-[#6F6F69] hover:bg-[#FAFAF7] transition-all cursor-pointer">Cancel</button>
+                  <button onClick={() => handleTrash(trashConfirm)} className="flex-1 h-11 rounded-lg bg-red-500 text-white text-[13px] font-medium hover:bg-red-600 transition-all cursor-pointer">Move to Trash</button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Filter Panel */}
       {showFilters && (
@@ -385,9 +421,11 @@ export default function UserOrdersPage() {
                     </td>
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
-                        <button onClick={() => router.push(`/dashboard/orders/${order.id}`)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-colors cursor-pointer"><Eye size={15} strokeWidth={1.5} /></button>
-                        {activeTab === "trash" && (
+                        <button onClick={() => router.push(`/dashboard/orders/${order.id}`)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-[#F2EFE8] hover:text-[#171717] transition-colors cursor-pointer" title="View order"><Eye size={15} strokeWidth={1.5} /></button>
+                        {activeTab === "trash" ? (
                           <button onClick={() => handleRestore(order.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-green-50 hover:text-green-600 transition-colors cursor-pointer" title="Restore order"><RotateCcw size={15} strokeWidth={1.5} /></button>
+                        ) : (
+                          <button onClick={() => setTrashConfirm(order.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-[#6F6F69] hover:bg-red-50 hover:text-red-500 transition-colors cursor-pointer" title="Move to trash"><Trash2 size={15} strokeWidth={1.5} /></button>
                         )}
                       </div>
                     </td>
@@ -413,10 +451,15 @@ export default function UserOrdersPage() {
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[order.paymentStatus] || ""}`}>{formatStatus(order.paymentStatus)}</span>
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${statusColors[order.orderStatus] || ""}`}>{formatStatus(order.orderStatus)}</span>
                   </div>
-                  {activeTab === "trash" && (
+                  {activeTab === "trash" ? (
                     <button onClick={(e) => { e.stopPropagation(); handleRestore(order.id); }} className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[#E8E6DF] text-[11px] font-medium text-[#6F6F69] hover:bg-green-50 hover:text-green-600 transition-colors cursor-pointer">
                       <RotateCcw size={10} />
                       Restore
+                    </button>
+                  ) : (
+                    <button onClick={(e) => { e.stopPropagation(); setTrashConfirm(order.id); }} className="flex items-center gap-1 h-7 px-2.5 rounded-lg border border-[#E8E6DF] text-[11px] font-medium text-[#6F6F69] hover:bg-red-50 hover:text-red-500 transition-colors cursor-pointer">
+                      <Trash2 size={10} />
+                      Trash
                     </button>
                   )}
                 </div>
