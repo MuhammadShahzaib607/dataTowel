@@ -21,7 +21,9 @@ dotenv.config();
 // records using the default system resolver. Google (8.8.8.8) and
 // Cloudflare (1.1.1.1) handle SRV queries reliably.
 // On Vercel, this is harmless — the platform DNS handles it either way.
-dns.setServers(['8.8.8.8', '1.1.1.1']);
+if (process.env.NODE_ENV !== 'production') {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+}
 
 // Connect to MongoDB (serverless-safe with connection caching)
 await connectDB();
