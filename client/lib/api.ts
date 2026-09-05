@@ -18,11 +18,20 @@ export async function apiRequest<T = unknown>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (fetchErr) {
+    // Network failure — server unreachable, CORS blocked, DNS failure, etc.
+    console.error(`[API] Network error for ${method} ${endpoint}:`, fetchErr);
+    throw new Error(
+      "Unable to connect to the server. Please check your connection and try again."
+    );
+  }
 
   let data: unknown;
   try {

@@ -152,6 +152,8 @@ export const googleLoginUser = createAsyncThunk<
   { rejectValue: string }
 >("auth/googleLogin", async ({ idToken }, { rejectWithValue }) => {
   try {
+    const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
+    console.log("[Google Auth] API URL:", `${API_URL}/auth/google`);
     console.log("[Google Auth] Sending ID token to backend...");
     const data = await apiRequest<AuthResponse>("/auth/google", {
       method: "POST",
@@ -166,6 +168,10 @@ export const googleLoginUser = createAsyncThunk<
   } catch (err) {
     const message = err instanceof Error ? err.message : "Google sign-in failed";
     console.error("[Google Auth] Backend request failed:", message);
+    // Provide a more helpful error message for network failures
+    if (message === "Failed to fetch") {
+      return rejectWithValue("Unable to connect to the authentication server. Please check your connection.");
+    }
     return rejectWithValue(message);
   }
 });

@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/lib/hooks";
 import { removeFromCart, updateQuantity, clearCart } from "@/lib/store/cartSlice";
 import { ArrowLeft, Minus, Plus, Trash2, ShoppingBag, ImagePlus } from "lucide-react";
+import { openAuthModal } from "@/lib/store/uiSlice";
 
 export default function CartPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const items = useAppSelector((state) => state.cart.items);
   const totalAmount = useAppSelector((state) => state.cart.totalAmount);
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
   if (items.length === 0) {
     return (
@@ -272,7 +274,13 @@ export default function CartPage() {
               </div>
 
               <button
-                onClick={() => router.push("/checkout")}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    dispatch(openAuthModal("login"));
+                    return;
+                  }
+                  router.push("/checkout");
+                }}
                 className="w-full h-12 rounded-xl bg-[#171717] text-white text-[14px] font-medium hover:bg-[#2a2a2a] transition-all cursor-pointer mb-3"
               >
                 Checkout

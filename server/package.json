@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node --watch src/server.js"
+    "start": "cross-env NODE_ENV=production node src/server.js",
+    "build": "echo 'No build step required'"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.11.0",
     "cors": "^2.8.5",
+    "cross-env": "^10.1.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "firebase-admin": "^14.3.0",

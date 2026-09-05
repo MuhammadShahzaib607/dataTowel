@@ -15,6 +15,7 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
 // Lazy getter for use in components (same as auth, just named for clarity)
 export function getFirebaseAuth() {

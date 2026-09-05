@@ -131,7 +131,7 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ customer: 1, createdAt: -1 });
 orderSchema.index({ isActive: 1, createdAt: -1 });
 orderSchema.index({ isDeleted: 1, createdAt: -1 });
-orderSchema.index({ orderNumber: 1 });
+// orderNumber already has a unique index from { unique: true } in the schema definition
 
 const Order = mongoose.model("Order", orderSchema);
 
