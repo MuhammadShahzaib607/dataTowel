@@ -1,3 +1,5 @@
+console.log("[BOOT] server.js loading");
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -16,6 +18,10 @@ import dns from 'node:dns';
 
 dotenv.config();
 
+console.log("[BOOT] dotenv loaded");
+console.log("[BOOT] NODE_ENV:", process.env.NODE_ENV);
+console.log("[BOOT] MONGODB_URI present:", Boolean(process.env.MONGODB_URI));
+
 // Use public DNS resolvers to fix MongoDB SRV record resolution.
 // Some Windows/network configurations fail to resolve _mongodb._tcp SRV
 // records using the default system resolver. Google (8.8.8.8) and
@@ -25,10 +31,9 @@ if (process.env.NODE_ENV !== 'production') {
     dns.setServers(['8.8.8.8', '1.1.1.1']);
 }
 
-// Connect to MongoDB (serverless-safe with connection caching)
-await connectDB();
-
+console.log("[BOOT] Creating Express app");
 const app = express();
+console.log("[BOOT] Express app created");
 
 // Build allowed origins list from CLIENT_URL (comma-separated)
 // e.g. CLIENT_URL="http://localhost:3000,https://datatowel.vercel.app"
@@ -72,6 +77,18 @@ app.use(
 // Body parser
 app.use(express.json({ limit: "10mb" }));
 
+// Lazy MongoDB connection middleware — connects on first request, reuses after.
+// This prevents module-level crash if DB is temporarily unreachable.
+app.use(async (_req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("[DB] Connection failed:", err.message);
+    res.status(503).json({ success: false, message: "Database service unavailable. Please try again later." });
+  }
+});
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
@@ -83,6 +100,8 @@ app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/notifications", adminNotificationRoutes);
 app.use("/api/notifications", userNotificationRoutes);
 app.use("/api/store", publicRoutes);
+
+console.log("[BOOT] Routes registered");
 
 // Health check
 app.get("/api/health", (req, res) => {
