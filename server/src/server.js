@@ -87,6 +87,10 @@ app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "DataTowel API is running" });
 });
 
+app.get("/", ()=> {
+  res.json({ success: true, message: "ok" })
+})
+
 // Global error handler — catches CORS errors and unhandled exceptions
 app.use((err, _req, res, _next) => {
   if (err.message && err.message.startsWith("Not allowed by CORS")) {
@@ -101,9 +105,11 @@ app.use((err, _req, res, _next) => {
 // On Vercel, the exported app is used as the serverless handler instead.
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`[Server] Running on port ${PORT}`);
-  console.log("[Server] Allowed origins:", allowedOrigins);
-});
+if (process.env.NODE_ENV !== 'production') {
+    const port = process.env.PORT || 8000;
+    server.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
+    });
+};
 
 export default app;
