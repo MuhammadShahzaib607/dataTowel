@@ -54,7 +54,7 @@ app.use(
         return;
       }
 
-      // Allow any localhost origin in development (any port)
+      // Allow any localhost origin in development
       if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) {
         callback(null, true);
         return;
