@@ -5,8 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch server.js",
-    "start": "cross-env NODE_ENV=production node server.js",
+    "start": "node --watch server.js",
     "build": "echo 'No build step required'"
+  },
+  "engines": {
+    "node": ">=22.0.0"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
