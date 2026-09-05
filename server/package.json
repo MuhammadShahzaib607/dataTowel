@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/server.js",
-    "start": "cross-env NODE_ENV=production node src/server.js",
+    "dev": "node --watch server.js",
+    "start": "cross-env NODE_ENV=production node server.js",
     "build": "echo 'No build step required'"
   },
   "dependencies": {

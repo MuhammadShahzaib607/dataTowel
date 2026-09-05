@@ -1,17 +1,17 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import connectDB from "./config/db.js";
-import authRoutes from "./routes/authRoutes.js";
-import userRoutes from "./routes/userRoutes.js";
-import productRoutes from "./routes/productRoutes.js";
-import orderRoutes from "./routes/orderRoutes.js";
-import blogRoutes from "./routes/blogRoutes.js";
-import bankDetailsRoutes from "./routes/bankDetailsRoutes.js";
-import adminUserRoutes from "./routes/adminUserRoutes.js";
-import adminNotificationRoutes from "./routes/adminNotificationRoutes.js";
-import userNotificationRoutes from "./routes/userNotificationRoutes.js";
-import publicRoutes from "./routes/publicRoutes.js";
+import connectDB from "./src/config/db.js";
+import authRoutes from "./src/routes/authRoutes.js";
+import userRoutes from "./src/routes/userRoutes.js";
+import productRoutes from "./src/routes/productRoutes.js";
+import orderRoutes from "./src/routes/orderRoutes.js";
+import blogRoutes from "./src/routes/blogRoutes.js";
+import bankDetailsRoutes from "./src/routes/bankDetailsRoutes.js";
+import adminUserRoutes from "./src/routes/adminUserRoutes.js";
+import adminNotificationRoutes from "./src/routes/adminNotificationRoutes.js";
+import userNotificationRoutes from "./src/routes/userNotificationRoutes.js";
+import publicRoutes from "./src/routes/publicRoutes.js";
 import dns from 'node:dns';
 
 dotenv.config();
@@ -87,9 +87,9 @@ app.get("/api/health", (req, res) => {
   res.json({ success: true, message: "DataTowel API is running" });
 });
 
-app.get("/", ()=> {
-  res.json({ success: true, message: "ok" })
-})
+app.get("/", (_req, res) => {
+  res.json({ success: true, message: "ok" });
+});
 
 // Global error handler — catches CORS errors and unhandled exceptions
 app.use((err, _req, res, _next) => {
@@ -106,10 +106,10 @@ app.use((err, _req, res, _next) => {
 const PORT = process.env.PORT || 5000;
 
 if (process.env.NODE_ENV !== 'production') {
-    const port = process.env.PORT || 8000;
-    server.listen(port, () => {
-        console.log(`Server is running on port ${port}`);
-    });
-};
+  app.listen(PORT, () => {
+    console.log(`[Server] Running on port ${PORT}`);
+    console.log("[Server] Allowed origins:", allowedOrigins);
+  });
+}
 
 export default app;
